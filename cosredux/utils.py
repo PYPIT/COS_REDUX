@@ -47,7 +47,7 @@ def modify_rawtag_for_calcos(path):
 
 
 def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=False):
-    """ Open a file, grab rows of interest, update the value
+    """ Open a file, grab rows of interest, update the values
 
     Parameters
     ----------
@@ -118,8 +118,39 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280):
             lp3_dict[segment][aperture] = {}
             lp3_dict[segment][aperture]['SLOPE'] = lp3[row]['SLOPE'].data[0]
             lp3_dict[segment][aperture]['B_SPEC'] = lp3[row]['B_SPEC'].data[0]
-    # Update values in LP2 using modify_table_value
-    LP2_1dx_file = calib_path+'/x6q17586l_1dx.fits'
 
-    with fits.open(LP2_1dx_file, 'update') as f:
+    # Open LP2 file for editing; read in info
+    LP2_1dx_file = calib_path+'/x6q17586l_1dx.fits'
+    hdu = fits.open(LP2_1dx_file)
+    lp2 = Table(hdu[1].data)
+    hdu0 = hdu[0]
+
+    # Update values in LP2 using modify_table_value
+    for segment in lp3_dict.keys():
+        for aperture in lp3_dict[segment].keys():
+            # Find row
+            row = (lp2['OPT_ELEM'] == OPT_ELEM) & (lp2['CENWAVE']==CENWAVE) & (
+                lp2['SEGMENT'] == segment) & (lp2['APERTURE'] == aperture)
+            # Set values
+            for column in lp3_dict[segment][aperture].keys():
+                if (aperture == 'PSA') and (column == 'SLOPE'):
+                    lp2[column][row] = 0.
+                elif (aperture == 'PSA') and (column == 'B_SPEC'):
+                    if OPT_ELEM == 'G140L':
+                        lp2[column][row] = int(lp3_dict[segment][aperture][column]) + 0.5  # Assumes odd height c
+                    else:
+                        pdb.set_trace()  # Not ready for this element
+                else:
+                    lp2[column][row] = lp3_dict[segment][aperture][column]
+            if OPT_ELEM == 'G140L':
+                lp2[row]['HEIGHT'] = 25
+            else:
+                pdb.set_trace()  # Not ready for this element
+
+    # Write
+    thdu = fits.table_to_hdu(lp2)
+    thdulist = fits.HDUList([hdu0,thdu])
+    thdulist.writeto(LP2_1dx_file, clobber=True)
+
+    #
 
