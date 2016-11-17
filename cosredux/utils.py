@@ -154,3 +154,56 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280):
 
     #
 
+
+### COADD
+
+from astropy.table import join
+
+
+def coadd_fits(fa1, fa2, fa3, fa4, fa, clobber=False):
+    """
+    Parameters
+    ----------
+    fa1, fa2, fa3, fa4 - fits files to coadd
+    clobber
+
+    Returns
+    -------
+    fa - coadded fa1,fa2,fa3,fa4
+
+    """
+
+    # Read
+    hdu = fits.open(fa1)
+    tbl1 = Table(hdu[1].data)
+    hdu.close()
+    hdu = fits.open(fa2)
+    tbl2 = Table(hdu[1].data)
+    hdu.close()
+    hdu = fits.open(fa3)
+    tbl3 = Table(hdu[1].data)
+    hdu.close()
+    hdu = fits.open(fa4)
+    tbl4 = Table(hdu[1].data)
+    hdu.close()
+
+    # Coadd tables
+    tbltot = join(tbl1, tbl2, join_type='outer')
+    tbltot = join(tbltot, tbl3, join_type='outer')
+    tbltot = join(tbltot, tbl4, join_type='outer')
+
+    # write new file (only hdu[1] for now, and header as in fa1 file)
+    filename0 = fa1
+    hdu = fits.open(filename0)
+    phdu = fits.PrimaryHDU()
+    phdu.header = hdu[0].header
+    thdu = fits.table_to_hdu(tbltot)
+    thdulist = fits.HDUList([phdu, thdu])
+    thdulist.writeto(fa, clobber=clobber)
+    hdu.close()
+
+    # Return
+    return tbltot
+
+
+
