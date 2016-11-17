@@ -115,6 +115,9 @@ Follow the steps below for each segment (a, b) separately.
 3) Customize and run CALCOS (1st Pass)
 ======================================
 
+(a) Original Notes
+------------------
+
 - **cd folder_with_raw_data**
 
 - **For all FUV data set the following CALCOS calibration switches within pyraf:**
@@ -142,6 +145,19 @@ Follow the steps below for each segment (a, b) separately.
   Downloading files from https://hst-crds.stsci.edu :
   Do not just use right click to save files.
 
+(a) COS_REDUX Script
+--------------------
+
+The above thedit commands can be executed on a set of rawtag files
+in a given folder with the modify_rawtag_for_calcos() method.  Here is an example::
+
+    from cosredux import utils as crdxu
+    crdxu.modify_rawtag_for_calcos(path_to_files)
+
+This over-writes various header cards in the primary HDU.
+
+(b) Original Notes
+------------------
 
 - **Define your WCA and PSA traces in CALCOS v2.21:** In the calibration directory type:
 
@@ -162,6 +178,8 @@ Follow the steps below for each segment (a, b) separately.
           - For G140L data set the PSA HEIGHT=25.
           - (Change values only for G140L ?)
 
+(b) COS_REDUX Script
+--------------------
 
 - **Run CALCOS (1st Pass):**
 
