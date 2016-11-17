@@ -181,6 +181,16 @@ This over-writes various header cards in the primary HDU.
 (b) COS_REDUX Script
 --------------------
 
+The LP3 trace solution may be applied to the LP2 with the modify_LP2_1dx_calib() script.
+Here is an example::
+
+    crdxu.modify_LP2_1dx_calib(cpath)
+
+where cpath it the path to the calibration directory.
+
+(c) Both
+--------
+
 - **Run CALCOS (1st Pass):**
 
   cd science_directory and type in pyraf:
