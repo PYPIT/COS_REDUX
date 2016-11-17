@@ -151,56 +151,52 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280):
     thdu = fits.table_to_hdu(lp2)
     thdulist = fits.HDUList([hdu0,thdu])
     thdulist.writeto(LP2_1dx_file, clobber=True)
-
-    #
-
-
-### COADD
-
-from astropy.table import join
+    # Return
+    return
 
 
-def coadd_fits(fa1, fa2, fa3, fa4, fa, clobber=False):
-    """
+def coadd_bintables(infiles, outfile=None, clobber=True):
+    """ Coadd a set of input BINARY table FITS files
+
     Parameters
     ----------
-    fa1, fa2, fa3, fa4 - fits files to coadd
-    clobber
+    infiles : list
+    outfile : str, optional
+      If input, generate a FITS file of the coadded tables
+    clobber : bool
 
     Returns
     -------
-    fa - coadded fa1,fa2,fa3,fa4
+    tbltot - coadded fa1,fa2,fa3,fa4
 
     """
+    from astropy.table import vstack
 
-    # Read
-    hdu = fits.open(fa1)
-    tbl1 = Table(hdu[1].data)
-    hdu.close()
-    hdu = fits.open(fa2)
-    tbl2 = Table(hdu[1].data)
-    hdu.close()
-    hdu = fits.open(fa3)
-    tbl3 = Table(hdu[1].data)
-    hdu.close()
-    hdu = fits.open(fa4)
-    tbl4 = Table(hdu[1].data)
-    hdu.close()
+    tbllist = []
+    head0 = None
+    for ifile in infiles:
+        # Read
+        hdu = fits.open(ifile)
+        tbl1 = Table(hdu[1].data)
+        if head0 is None:
+            head0 = hdu[0].header
+        else:
+            pass # Maybe we should add HISTORY and COMMENT lines to header
+        tbllist.append(tbl1)
+        hdu.close()
 
     # Coadd tables
-    tbltot = join(tbl1, tbl2, join_type='outer')
-    tbltot = join(tbltot, tbl3, join_type='outer')
-    tbltot = join(tbltot, tbl4, join_type='outer')
+    tbltot = vstack(tbllist, join_type='exact')
 
-    # write new file (only hdu[1] for now, and header as in fa1 file)
-    filename0 = fa1
-    hdu = fits.open(filename0)
-    phdu = fits.PrimaryHDU()
-    phdu.header = hdu[0].header
-    thdu = fits.table_to_hdu(tbltot)
-    thdulist = fits.HDUList([phdu, thdu])
-    thdulist.writeto(fa, clobber=clobber)
-    hdu.close()
+    # write new file (header from first)
+    if outfile is not None:
+        phdu = fits.PrimaryHDU()
+        phdu.header = head0
+        thdu = fits.table_to_hdu(tbltot)
+        thdulist = fits.HDUList([phdu, thdu])
+        thdulist.writeto(outfile, clobber=clobber)
+        hdu.close()
+        print("Wrote outfile {:s}".format(outfile))
 
     # Return
     return tbltot

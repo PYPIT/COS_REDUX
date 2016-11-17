@@ -212,7 +212,11 @@ where cpath it the path to the calibration directory.
 4) Coadd and Inspect CORRTAG Files, and rerun CALCOS
 ====================================================
 
-**- Coadd files: in pyraf or in python.**
+(a) Coadd files: in pyraf or in COS_Redux
+-----------------------------------------
+
+Pyraf
++++++
 
 **a) Pyraf:** http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?tmerge.hlp
 
@@ -221,14 +225,20 @@ tmerge lcya01fyq_corrtag_a.fits,lcya01ggq_corrtag_a.fits,lcya01g0q_corrtag_a.fit
 tmerge lcya01fyq_corrtag_b.fits,lcya01ggq_corrtag_b.fits,lcya01g0q_corrtag_b.fits,lcya01gjq_corrtag_b.fits l01corrtagsapp_b.fits append
 
 
-**b) Python:**
+COS_Redux
++++++++++
 
-coadd corrtag files (separately for a-segment and b-segment):
+Input a list of corrtag files to combine with astropy.table.vstack.
+Here is an example::
 
-coadd_fits(fa1, fa2, fa3, fa4, fa, clobber=False):
+    corrtag_files = glob.glob(os.getenv('DROPBOX_DIR')+'/COS-LRG/LCYA01010/*corrtag_a.fits')
+    coadd_bintables(corrtag_files, outfile='tst.fits')
 
 
-**- Find trace of object and arc:**
+
+
+(b) Find trace of object and arc
+------------------------------------
 
 hdu = fits.open(fa)
 tbl = Table(hdu[1].data)
