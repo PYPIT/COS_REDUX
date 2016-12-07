@@ -50,4 +50,12 @@ def test_find_dark():
     assert len(darks_a) == 1
     assert len(darks_b) == 1
 
+def test_modify():
+    datafld0=tst_path+'raw/'
+    calibfld=tst_path+'calibs/'
+    from shutil import copyfile
+    for file in datafld0:
+        copyfile(file,'cp_'+file)
+    modify_rawtag_for_calcos(datafld0)
+    modify_LP2_1dx_calib(calibfld,outfil='LP2_modified.fits')
 
