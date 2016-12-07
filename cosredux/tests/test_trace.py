@@ -3,12 +3,13 @@ from __future__ import print_function, absolute_import, \
      division, unicode_literals
 import os
 import pytest
-from astropy.table import Table
+
 import numpy as np
 from shutil import copyfile
 import glob
 
 from astropy.io import fits
+from astropy.table import Table
 
 from cosredux import utils
 
