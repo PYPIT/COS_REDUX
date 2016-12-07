@@ -238,7 +238,7 @@ Here is an example::
 
 
 (b) Find trace of object and arc
-------------------------------------
+--------------------------------
 
 hdu = fits.open(fa)
 tbl = Table(hdu[1].data)

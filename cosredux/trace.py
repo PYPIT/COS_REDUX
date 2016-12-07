@@ -4,6 +4,7 @@ from __future__ import (print_function, absolute_import, division, unicode_liter
 
 import numpy as np
 from astropy.table import Table
+from astropy.io import fits
 
 from xastropy.xutils import xdebug as xdb
 
@@ -133,3 +134,21 @@ def show_traces(wave, yfull, obj_y, arc_y):
     plt.show()
 
 
+#------------------------------------------------------------------------------------------------------
+
+
+def traces(filename, filecal, row_dict, ymin=300, ymax=700, ytl=550, outfil=None, clobber=False):
+    """
+    filename: str - fa
+    """
+    # FITS
+    data = Table.read(filename)
+    wave = data['WAVELENGTH']
+    yfull = data['YFULL']
+    ###d obj_y, arc_y, obj_y_min, obj_y_max = crude_histogram(yfull,ymin=ymin,ymax=ymax,ytl=ytl)
+    obj_y, arc_y = crude_histogram(yfull, ymin=ymin, ymax=ymax, ytl=ytl)  ###n
+    show_traces(wave, yfull, obj_y, arc_y)
+    # Update trace value
+    modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=outfil, clobber=clobber)
+
+    return obj_y, arc_y

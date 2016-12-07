@@ -202,4 +202,166 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     return tbltot
 
 
+###n ----------------------------------------------------------------------------------------------------
 
+def find_darks(darksfld, file, segm):
+    # data: date
+    hdu = fits.open(file)
+    head0 = hdu[0].header
+    ftime = head0['DATE']
+
+    # find darks
+    folder = darksfld
+    darksfiles = glob.glob(darksfld + '*' + segm + '.fits')
+    n = len(darksfiles)
+    ###d boolstr=[0.]*n
+    times = [''] * n
+    ###d dd=[0]*n
+    dlist = []
+
+    # read header
+    for i in np.arange(n):
+        file = darksfiles[i]
+        hdu = fits.open(file)
+        head1 = hdu[1].header
+        ###d dts[i]=head1['EXPTIME']  # all are 1330
+        times[i] = head1['DATE-OBS']
+        dd1 = (np.datetime64(times[i]) - np.datetime64(ftime))
+        dd = int(str.split(str(dd1))[0])  ## dd[i]
+        if (abs(dd) < 90.):  ## dd[i]
+            ###d boolstr[i]=1.
+            dlist.append(file)
+
+    # new array with darks
+    return dlist
+
+
+###n:
+def find_fcc(calibfld):
+    fcd = calibfld + 'x6q17586l_1dx.fits'  # downloaded
+    fccs = glob.glob(calibfld + '*_1dx.fits')
+    ###ch
+    if len(fccs) == 2:
+        if fccs[0] != fcd:
+            fcc = fccs[0]
+        else:
+            fcc = fccs[1]
+    return fcc
+
+
+###n:
+def addcolumns(corrtag_files_n, fn, fn2):
+    sunalts = []
+    limbangs = []
+    for file in corrtag_files_n:
+        hdu = fits.open(file)
+        tbl = Table(hdu[3].data)
+        sunaltf = tbl['SUN_ALT']
+        limbangf = tbl['TARGET_ALT']
+        hdu.close()
+        sunalts = np.append(sunalts, sunaltf)
+        limbangs = np.append(limbangs, limbangf)
+        # https://docs.scipy.org/doc/numpy/reference/generated/numpy.append.html
+    # print(max(sunalt),len(sunalt),len(sunalt1))
+
+    import pyfits
+    data = pyfits.open(fn)[1].data
+    cols = []
+    cols.append(
+        pyfits.Column(name='SUN_ALT', format='1E', array=sunaltf)
+    )
+    cols.append(
+        pyfits.Column(name='LimbAng', format='1E', array=limbangf)
+    )
+    orig_cols = data.columns
+    new_cols = pyfits.ColDefs(cols)
+    hdu = pyfits.BinTableHDU.from_columns(orig_cols + new_cols)
+    hdu.writeto(fn2, clobber=True)
+    ##hdu.close()
+
+
+def get_hvlevels(files):
+    for file in files:
+        hdu = fits.open(file)
+        print(file, hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB'])
+        hdu.close()
+
+
+def cl_file(darks_a, darks_b, clfile):
+    """
+    creates .cl file with darks
+    """
+    clfile = 'darkscript.cl'
+    f = open(clfile, 'w')
+
+    for file in darks_a:
+        f.write('calcos ' + file + '\n')
+    for file in darks_b:
+        f.write('calcos' + file + '\n')
+
+
+"""
+  calcos [dark1]_rawtag_a.fits
+  calcos [dark1]_rawtag_b.fits
+  calcos [dark2]_rawtag_a.fits
+  calcos [dark2]_rawtag_b.fits
+  ...
+"""
+
+
+def change_pha(calibfld, low, up):
+    phafile = glob.glob(calibfld + '*pha.fits')[0]
+    hdu = fits.open(phafile)
+    head1 = hdu[1].header
+    with fits.open(phafile, 'update') as f:
+        head1 = f[1].header
+        head1['PHALOWRA'] = 2
+        head1['PHALOWRB'] = 2
+        head1['PHAUPPRA'] = 15
+        head1['PHAUPPRB'] = 15
+    hdu.close()  ###q hdu? f.close() ?  close file?
+
+
+def modify_phacorr(rawfiles):
+    # Loop on the rawtag files
+    for rawfile in rawfiles:
+        print("Modifying header cards for rawtag file: {:s}".format(rawfile))
+        with fits.open(rawfile, 'update') as f:
+            hdu0 = f[0]
+            hdu0.header['PHACORR'] = 'PERFORM'
+
+
+def change_dq_wgt(folder2):
+    x1dfiles = glob.glob(folder2 + '*_x1d*.fits')
+
+    for i in np.arange(len(x1dfiles)):
+        # read DQ
+        filename = x1dfiles[i]
+        hdu = fits.open(filename)
+        tbl = Table(hdu[1].data)
+        dq = tbl['DQ']
+        # dqwgt
+        dqwgt = dq
+
+        # param: output file is the same
+        outfil = filename
+        clobber = True
+
+        # without for:
+        badDQ = (tbl['DQ'] > 2) & (tbl['DQ'] != 1024)
+        tbl['DQ_WGT'][badDQ] = 0
+
+        tbl2 = tbl
+        tbl2['DQ_WGT'] = dqwgt
+
+        # Write?
+        if outfil is not None:
+            hdu = fits.open(filename)
+            phdu = fits.PrimaryHDU()
+            phdu.header = hdu[0].header
+            thdu = fits.table_to_hdu(tbl2)
+            thdu.header = hdu[1].header
+            thdulist = fits.HDUList([phdu, thdu])
+            thdulist.writeto(outfil, clobber=clobber)
+
+        hdu.close()

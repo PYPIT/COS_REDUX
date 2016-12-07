@@ -10,6 +10,8 @@ from linetools.spectra import io
 from linetools.spectra.xspectrum1d import XSpectrum1D
 from linetools.spectra import utils as ltsu
 
+from cosredux import utils
+
 from cosredux import trace
 
 
@@ -30,5 +32,15 @@ def test_crude():
     trace.refine_peak(yfull, obj_y)
     # Plot
     trace.show_traces(wave, yfull, obj_y, arc_y)
+
+
+def test_find_dark():
+    dstr = 'lcya'
+    datastr = '01'
+    datafld0 = 'new_redux_new/'
+    cosfile='/home/marijana/Marijana/COS/LCYA01010/'
+    darksfld=cosfile+'darksall2/'
+    fa1r=cosfile+datafld0+'lcya'+datastr+'fyq_rawtag_a.fits'
+    darks_a = utils.find_darks(darksfld, fa1r, 'a')
 
 
