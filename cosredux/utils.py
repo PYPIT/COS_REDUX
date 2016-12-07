@@ -204,9 +204,29 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
 
 ###n ----------------------------------------------------------------------------------------------------
 
-def find_darks(darksfld, file, segm):
+def find_darks(darksfld, scifile, segm, ndays=90.):
+    """
+    Parameters
+    ----------
+    darksfld : str
+      Path to the darks folder
+    scifile : str
+      Science frame (could be raw, processed, etc.)
+      Requires date information in the header
+    segm : str
+      COS segment -- 'a' or 'b'
+    ndays : float
+      Number of days to search within to match to darks
+
+
+    Returns
+    -------
+    dlist : list
+      List of darks within +/- ndays
+
+    """
     # data: date
-    hdu = fits.open(file)
+    hdu = fits.open(scifile)
     head0 = hdu[0].header
     ftime = head0['DATE']
 
@@ -228,7 +248,7 @@ def find_darks(darksfld, file, segm):
         times[i] = head1['DATE-OBS']
         dd1 = (np.datetime64(times[i]) - np.datetime64(ftime))
         dd = int(str.split(str(dd1))[0])  ## dd[i]
-        if (abs(dd) < 90.):  ## dd[i]
+        if (abs(dd) < ndays):  ## dd[i]
             ###d boolstr[i]=1.
             dlist.append(file)
 

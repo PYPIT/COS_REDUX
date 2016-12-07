@@ -19,28 +19,35 @@ def data_path(filename):
     data_dir = os.path.join(os.path.dirname(__file__), 'files')
     return os.path.join(data_dir, filename)
 
+tst_path = os.getenv('DROPBOX_DIR')+'/COS-LRG/tests/'
 
 def test_crude():
     # FITS
-    filename = data_path('l01corrtagsapp_a.fits')
+    filename = tst_path+'l01corrtagsapp_a.fits'
     data = Table.read(filename)
     wave = data['WAVELENGTH']
     yfull = data['YFULL']
     # Crude
     obj_y, arc_y = trace.crude_histogram(yfull)
     # Refine object
-    trace.refine_peak(yfull, obj_y)
+    pk = trace.refine_peak(yfull, obj_y)
+    np.testing.assert_allclose(pk, 466.02716064453125)
     # Plot
-    trace.show_traces(wave, yfull, obj_y, arc_y)
+    show = False
+    if show:
+        trace.show_traces(wave, yfull, obj_y, arc_y)
 
 
 def test_find_dark():
-    dstr = 'lcya'
-    datastr = '01'
-    datafld0 = 'new_redux_new/'
-    cosfile='/home/marijana/Marijana/COS/LCYA01010/'
-    darksfld=cosfile+'darksall2/'
-    fa1r=cosfile+datafld0+'lcya'+datastr+'fyq_rawtag_a.fits'
-    darks_a = utils.find_darks(darksfld, fa1r, 'a')
+    # Setup
+    darksfld = tst_path+'darks/'
+    scifilea = tst_path+'raw/lcya01fyq_rawtag_a.fits'
+    scifileb = tst_path+'raw/lcya01fyq_rawtag_b.fits'
+    # Run
+    darks_a = utils.find_darks(darksfld, scifilea, 'a')
+    darks_b = utils.find_darks(darksfld, scifileb, 'b')
+    # Test
+    assert len(darks_a) == 1
+    assert len(darks_b) == 1
 
 
