@@ -5,10 +5,10 @@ import os
 import pytest
 from astropy.table import Table
 import numpy as np
+from shutil import copyfile
+import glob
 
-from linetools.spectra import io
-from linetools.spectra.xspectrum1d import XSpectrum1D
-from linetools.spectra import utils as ltsu
+from astropy.io import fits
 
 from cosredux import utils
 
@@ -50,12 +50,68 @@ def test_find_dark():
     assert len(darks_a) == 1
     assert len(darks_b) == 1
 
-def test_modify():
+
+def test_modify_raw():
+    # Copy raw into files/raw
+    try:
+        os.mkdir(data_path('raw'))
+    except OSError: # likely already exists
+        pass
     datafld0=tst_path+'raw/'
+    raw_files = glob.glob(datafld0+'*rawtag*')
+    new_files = []
+    for kk,raw_file in enumerate(raw_files[0:2]):
+        root = raw_file[raw_file.rfind('/')+1:]
+        new_file = data_path('raw/'+root)
+        copyfile(raw_file,new_file)
+        new_files.append(new_file)
+        # Grab for testing
+        if kk == 0:
+            with fits.open(raw_file) as f:
+                head = f[0].header
+                fcorr = head['FLATCORR']
+    #
+    assert fcorr == 'PERFORM'
+    utils.modify_rawtag_for_calcos(data_path('raw/'))
+    # Test
+    with fits.open(new_files[0]) as f:
+        newhead = f[0].header
+        newfcorr = newhead['FLATCORR']
+    assert newfcorr == 'OMIT'
+
+
+def test_modify_calibs():
+    try:
+        os.mkdir(data_path('calibs'))
+    except OSError: # likely already exists
+        pass
     calibfld=tst_path+'calibs/'
-    from shutil import copyfile
-    for file in datafld0:
-        copyfile(file,'cp_'+file)
-    modify_rawtag_for_calcos(datafld0)
-    modify_LP2_1dx_calib(calibfld,outfil='LP2_modified.fits')
+    calib_files = glob.glob(calibfld+'*1dx*')
+    new_files = []
+    for kk,calib_file in enumerate(calib_files[0:2]):
+        root = calib_file[calib_file.rfind('/')+1:]
+        new_file = data_path('calibs/'+root)
+        copyfile(calib_file,new_file)
+        new_files.append(new_file)
+        # Grab for testing
+        if kk == 0:
+            with fits.open(calib_file) as f:
+                head = f[0].header
+    utils.modify_LP2_1dx_calib(data_path('calibs/'))
+    # Test
+    OPT_ELEM='G140L'
+    CENWAVE=1280
+    segment = 'FUVA'
+    aperture = 'PSA'
+    LP3_1dx_file = calibfld+'/z2d19237l_1dx.fits'
+    LP2_1dx_file = calibfld+'/x6q17586l_1dx.fits'
+    new_LP2_file = data_path('calibs/x6q17586l_1dx.fits')
+    B_SPEC_vals = []
+    for ifile in [LP3_1dx_file, LP2_1dx_file, new_LP2_file]:
+        tbl = Table.read(ifile)
+        row = (tbl['OPT_ELEM'] == OPT_ELEM) & (tbl['CENWAVE']==CENWAVE) & (
+            tbl['SEGMENT'] == segment) & (tbl['APERTURE'] == aperture)
+        B_SPEC_vals.append(tbl[row]['B_SPEC'].data[0])
+    assert B_SPEC_vals[0] != B_SPEC_vals[1]
+    np.testing.assert_allclose(B_SPEC_vals[2], 459.5)
 

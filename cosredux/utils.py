@@ -88,7 +88,7 @@ def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=F
     return tbl
 
 
-def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280):
+def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=True):
     """  Modify WCA and PSA definitions in the 1dx calibration file
     of LP2 according to the values in the file for LP3
     Only necessary for CALCOS v2
