@@ -116,13 +116,22 @@ def test_modify_calibs():
     assert B_SPEC_vals[0] != B_SPEC_vals[1]
     np.testing.assert_allclose(B_SPEC_vals[2], 459.5)
 
+
 def test_coadd():
     datafld=tst_path+'corrtag/'
     datastr='01'
-    fa = datafld + 'l' + datastr + 'corrtagsapp_a.fits'
-    fb = datafld + 'l' + datastr + 'corrtagsapp_b.fits'
+    fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
+    fb = data_path('l' + datastr + 'corrtagsapp_b.fits')
     corrtag_files_a = glob.glob(datafld + '*_corrtag_a.fits')
     corrtag_files_b = glob.glob(datafld + '*_corrtag_b.fits')
+    # Test on a
+    nrows = []
+    for afile in corrtag_files_a:
+        with fits.open(afile) as f:
+            nrows.append(len(f[1].data))
     utils.coadd_bintables(corrtag_files_a, outfile=fa)
     utils.coadd_bintables(corrtag_files_b, outfile=fb)
-
+    # Test on A
+    with fits.open(fa) as f:
+        new_rows = len(f[1].data)
+    assert np.sum(np.array(nrows)) == new_rows
