@@ -125,3 +125,4 @@ def test_coadd():
     corrtag_files_b = glob.glob(datafld + '*_corrtag_b.fits')
     utils.coadd_bintables(corrtag_files_a, outfile=fa)
     utils.coadd_bintables(corrtag_files_b, outfile=fb)
+
