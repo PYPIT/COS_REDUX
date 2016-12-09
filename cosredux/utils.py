@@ -162,12 +162,13 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     ----------
     infiles : list
     outfile : str, optional
-      If input, generate a FITS file of the coadded tables
-    clobber : bool
+      If given, generate a new FITS file
+    clobber : bool, optional
 
     Returns
     -------
-    tbltot - coadded fa1,fa2,fa3,fa4
+    tbltot - Table
+      combined table
 
     """
     from astropy.table import vstack
