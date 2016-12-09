@@ -135,3 +135,20 @@ def test_coadd():
     with fits.open(fa) as f:
         new_rows = len(f[1].data)
     assert np.sum(np.array(nrows)) == new_rows
+
+#--------------------------------------------------------------------------
+def test_traces_2():
+    #datafld=tst_path+'corrtag/'
+    #calibfld = tst_path + 'calibs/'
+    datastr='01'
+    fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
+    fb = data_path('l' + datastr + 'corrtagsapp_b.fits')
+    fcd=data_path('calibs/x6q17586l_1dx.fits')   ###calibfld+'x6q17586l_1dx.fits'
+    row_dict_a = {'OPT_ELEM': 'G140L', 'CENWAVE': '1280', 'SEGMENT': 'FUVA', 'APERTURE': 'PSA'}
+    row_dict_b = {'OPT_ELEM': 'G140L', 'CENWAVE': '1280', 'SEGMENT': 'FUVB', 'APERTURE': 'PSA'}
+    traces_a = trace.traces(fa, fcd, row_dict_a, outfil=fcd, clobber=True)
+    traces_b = trace.traces(fb, fcd, row_dict_b, ymin=360, ymax=760, ytl=610, outfil=fcd, clobber=True)
+    np.testing.assert_allclose(traces_a[0], 466.14, rtol=1e-4)
+    np.testing.assert_allclose(traces_b[0], 525.9885, rtol=1e-4) #525.9885
+   ## pytest.set_trace()
+

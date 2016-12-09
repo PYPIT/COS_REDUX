@@ -8,6 +8,8 @@ from astropy.io import fits
 
 from xastropy.xutils import xdebug as xdb
 
+from cosredux import utils
+
 
 def crude_histogram(yfull, ymin=300, ymax=700, ytl=550, pk_window=4.5, verbose=False):
     """ Derive a trace given an input COS image
@@ -137,18 +139,31 @@ def show_traces(wave, yfull, obj_y, arc_y):
 #------------------------------------------------------------------------------------------------------
 
 
-def traces(filename, filecal, row_dict, ymin=300, ymax=700, ytl=550, outfil=None, clobber=False):
+def traces(filename, filecal, row_dict, ymin=300, ymax=700, ytl=550, outfil=None, clobber=False, show=False):
     """
-    filename: str - fa
+    filename : str
+      File for which we want to find the trace. E. g. it could be corrtag file.
+    filecal : str
+      Calibration file in which we want to modify value of the trace.
+    row_dict : dict
+      Dict that describes which row(s) we want to modify
+    ymin : float, optional
+      define search window for trace. Default values for LP3
+    ymax : float, optional
+      define search window for trace. Default values for LP3
+    ytl : float, optional
+    outfil : str, optional
+    clobber : bool, optional
+    show : bool, optional
     """
     # FITS
     data = Table.read(filename)
     wave = data['WAVELENGTH']
     yfull = data['YFULL']
-    ###d obj_y, arc_y, obj_y_min, obj_y_max = crude_histogram(yfull,ymin=ymin,ymax=ymax,ytl=ytl)
-    obj_y, arc_y = crude_histogram(yfull, ymin=ymin, ymax=ymax, ytl=ytl)  ###n
-    show_traces(wave, yfull, obj_y, arc_y)
+    obj_y, arc_y = crude_histogram(yfull, ymin=ymin, ymax=ymax, ytl=ytl)
+    if show:
+        show_traces(wave, yfull, obj_y, arc_y)
     # Update trace value
-    modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=outfil, clobber=clobber)
+    utils.modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=outfil, clobber=clobber)
 
     return obj_y, arc_y
