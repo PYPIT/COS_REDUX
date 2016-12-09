@@ -84,7 +84,7 @@ def test_modify_raw():
 def test_modify_calibs():
     try:
         os.mkdir(data_path('calibs'))
-    except OSError: # likely already exists
+    except OSError:   # likely already exists
         pass
     calibfld=tst_path+'calibs/'
     calib_files = glob.glob(calibfld+'*1dx*')
