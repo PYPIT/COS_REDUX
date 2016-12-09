@@ -3,6 +3,7 @@
 from __future__ import (print_function, absolute_import, division, unicode_literals)
 
 import numpy as np
+import pdb
 from astropy.table import Table
 from astropy.io import fits
 
@@ -163,7 +164,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     if segment == 'FUVA':
         ymin, ymax, ytl = 300, 700, 550
     elif segment == 'FUVB':
-        ymin, ymax, ytl = 360, 760, 610
+        ymin, ymax, ytl = 360, 760, 610 
     else:
         raise IOError("Not ready for this segment")
     # Prepare to modify table
@@ -180,10 +181,12 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
         show_traces(wave, yfull, obj_y, arc_y)
     # Update trace value
     if calcos_version == 'v2':
-        filecal = calib_path+'/x6q17586l_1dx.fits'  # WHEN RUNNING calcos 2
+        filecal = calib_path+'x6q17586l_1dx.fits'  # WHEN RUNNING calcos 2
     else:
         raise IOError("Not ready for another calcos version")
     # Modify
+    #pdb.set_trace()
     utils.modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=filecal, clobber=clobber)
+    print('Updated trace for segment={:s} in {:s}'.format(segment, filecal))
 
     return obj_y, arc_y
