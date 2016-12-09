@@ -136,10 +136,8 @@ def test_coadd():
         new_rows = len(f[1].data)
     assert np.sum(np.array(nrows)) == new_rows
 
-#--------------------------------------------------------------------------
+
 def test_traces_2():
-    #datafld=tst_path+'corrtag/'
-    #calibfld = tst_path + 'calibs/'
     datastr='01'
     fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
     fb = data_path('l' + datastr + 'corrtagsapp_b.fits')
