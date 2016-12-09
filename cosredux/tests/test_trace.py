@@ -141,11 +141,9 @@ def test_traces_2():
     datastr='01'
     fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
     fb = data_path('l' + datastr + 'corrtagsapp_b.fits')
-    fcd=data_path('calibs/x6q17586l_1dx.fits')   ###calibfld+'x6q17586l_1dx.fits'
-    #row_dict_a = {'OPT_ELEM': 'G140L', 'CENWAVE': 1280, 'APERTURE': 'PSA'}
-    #row_dict_b = {'OPT_ELEM': 'G140L', 'CENWAVE': 1280, 'APERTURE': 'PSA'}
-    traces_a = trace.traces(fa, fcd, 'FUVA', outfil=fcd, clobber=True)
-    traces_b = trace.traces(fb, fcd, 'FUVB', outfil=fcd, clobber=True)
+    #fcd=data_path('calibs/x6q17586l_1dx.fits')   ###calibfld+'x6q17586l_1dx.fits'
+    traces_a = trace.traces(fa, data_path('calibs/'), 'FUVA', clobber=True)
+    traces_b = trace.traces(fb, data_path('calibs/'), 'FUVB', clobber=True)
     np.testing.assert_allclose(traces_a[0], 466.14, rtol=1e-4)
     np.testing.assert_allclose(traces_b[0], 525.9885, rtol=1e-4) #525.9885
    ## pytest.set_trace()

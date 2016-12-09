@@ -139,12 +139,13 @@ def show_traces(wave, yfull, obj_y, arc_y):
 #------------------------------------------------------------------------------------------------------
 
 
-def traces(filename, filecal, segment, row_dict=None, LP='LP3', outfil=None, clobber=False, show=False):
+def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
+           outfil=None, clobber=False, show=False, calcos_version='v2'):
     """
     filename : str
       File for which we want to find the trace. E. g. it could be corrtag file.
-    filecal : str
-      Calibration file in which we want to modify value of the trace.
+    calib_path : str
+      Path to calibration files
     segment : str
     row_dict : dict, optional
       Dict that describes which row(s) we want to modify
@@ -178,6 +179,11 @@ def traces(filename, filecal, segment, row_dict=None, LP='LP3', outfil=None, clo
     if show:
         show_traces(wave, yfull, obj_y, arc_y)
     # Update trace value
-    utils.modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=outfil, clobber=clobber)
+    if calcos_version == 'v2':
+        filecal = calib_path+'/x6q17586l_1dx.fits'  # WHEN RUNNING calcos 2
+    else:
+        raise IOError("Not ready for another calcos version")
+    # Modify
+    utils.modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=filecal, clobber=clobber)
 
     return obj_y, arc_y
