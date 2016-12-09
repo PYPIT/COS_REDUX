@@ -139,23 +139,37 @@ def show_traces(wave, yfull, obj_y, arc_y):
 #------------------------------------------------------------------------------------------------------
 
 
-def traces(filename, filecal, row_dict, ymin=300, ymax=700, ytl=550, outfil=None, clobber=False, show=False):
+def traces(filename, filecal, segment, row_dict=None, LP='LP3', outfil=None, clobber=False, show=False):
     """
     filename : str
       File for which we want to find the trace. E. g. it could be corrtag file.
     filecal : str
       Calibration file in which we want to modify value of the trace.
-    row_dict : dict
+    segment : str
+    row_dict : dict, optional
       Dict that describes which row(s) we want to modify
+      Defaulted to G140L, CENWAVE=1280
     ymin : float, optional
-      define search window for trace. Default values for LP3
+      define search window for trace. Default values for FUVA on LP3
     ymax : float, optional
-      define search window for trace. Default values for LP3
+      define search window for trace. Default values for FUVA on LP3
     ytl : float, optional
     outfil : str, optional
     clobber : bool, optional
     show : bool, optional
     """
+    assert LP == 'LP3'  # Only one coded
+    if segment == 'FUVA':
+        ymin, ymax, ytl = 300, 700, 550
+    elif segment == 'FUVB':
+        ymin, ymax, ytl = 360, 760, 610
+    else:
+        raise IOError("Not ready for this segment")
+    # Prepare to modify table
+    if row_dict is None:
+        row_dict = dict(OPT_ELEM='G140L', CENWAVE=1280, APERTURE='PSA')
+    # Add segment
+    row_dict['SEGMENT'] = segment
     # FITS
     data = Table.read(filename)
     wave = data['WAVELENGTH']
