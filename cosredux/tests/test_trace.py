@@ -138,7 +138,6 @@ def test_coadd():
     # Check for SUN_ALT
     hdua = fits.open(fa)
     tbl = Table(hdua[1].data)
-    pytest.set_trace()
 
 
 def test_traces_2():
@@ -202,10 +201,19 @@ def test_get_hvlevels():
 
 
 def test_modify_phacorr():
+    # Copy raw file over
     datafld0 = tst_path + 'raw/'
-    raw_files = glob.glob(datafld0 + '*rawtag*')
-    utils.modify_phacorr(raw_files)
-    for rawfile in raw_files:
+    raw_files = glob.glob(datafld0+'*rawtag*')
+    new_files = []
+    for kk,raw_file in enumerate(raw_files[0:2]):
+        root = raw_file[raw_file.rfind('/')+1:]
+        new_file = data_path('raw/'+root)
+        copyfile(raw_file,new_file)
+        new_files.append(new_file)
+    # Run
+    utils.modify_phacorr(data_path('raw/'))
+    # Test
+    for rawfile in new_files:
         with fits.open(rawfile) as f:
             hdu0 = f[0]
             assert hdu0.header['PHACORR'] == 'PERFORM'

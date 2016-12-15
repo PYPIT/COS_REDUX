@@ -3,6 +3,7 @@
 from __future__ import (print_function, absolute_import, division, unicode_literals)
 
 import numpy as np
+import os
 import glob
 import pdb
 
@@ -369,6 +370,34 @@ def change_pha(calibfld, low=2, up=15):
             head1['PHAUPPRB'] = up
 
 
+def clean_for_calcos_phafiltering(redux_dir):
+    """ Remove files before running calcos
+    Push corrtag files to woPHA
+
+    Parameters
+    ----------
+    redux_dir : str
+
+    Returns
+    -------
+
+    """
+    # Rename corrtag files
+    corrtag_files = glob.glob(redux_dir+'/*_corrtag_*')
+    for cfile in corrtag_files:
+        new_cfile = cfile.replace('corrtag_', 'corrtag_woPHA_')
+        print("Renaming corrtag file to {:s}".format(new_cfile))
+        os.rename(cfile, new_cfile)
+
+    # Remove unwanted files
+    for bad_exten in ['_flt', '_x1d', '_lampflash', '_counts', 'jnk']:
+        bad_files = glob.glob(redux_dir+'/*'+bad_exten+'*')
+        for bad_file in bad_files:
+            print("Removing {:s}".format(bad_file))
+            os.remove(bad_file)
+
+
+
 def modify_phacorr(rawtag_path):
     """
     Parameters
@@ -384,7 +413,7 @@ def modify_phacorr(rawtag_path):
     rawfiles = glob.glob(rawtag_path+'/*rawtag*')
     # Loop on the rawtag files
     for rawfile in rawfiles:
-        print("Modifying header cards for rawtag file: {:s}".format(rawfile))
+        print("Modifying PHACORR header card to PERFORM for rawtag file: {:s}".format(rawfile))
         with fits.open(rawfile, 'update') as f:
             hdu0 = f[0]
             hdu0.header['PHACORR'] = 'PERFORM'
