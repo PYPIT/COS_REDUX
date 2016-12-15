@@ -38,22 +38,6 @@ def test_crude():
     if show:
         trace.show_traces(wave, yfull, obj_y, arc_y)
 
-def test_change_pha():
-    # Copy 1 over
-    calibfld = tst_path + 'calibs/'
-    phafiles = glob.glob(calibfld + '*pha.fits')
-    raw_file = phafiles[0]
-    root = raw_file[raw_file.rfind('/')+1:]
-    new_file = data_path('calibs/'+root)
-    copyfile(raw_file,new_file)
-    # Run on new files
-    new_calibs = data_path('calibs/')
-    utils.change_pha(new_calibs)#, 2, 15)
-    # Test
-    phafiles = glob.glob(data_path('calibs/*pha.fits'))
-    hdu = fits.open(phafiles[0])
-    head1 = hdu[1].header
-    assert head1['PHALOWRA'] == 2
 
 def test_find_dark():
     # Setup
@@ -151,6 +135,10 @@ def test_coadd():
     with fits.open(fa) as f:
         new_rows = len(f[1].data)
     assert np.sum(np.array(nrows)) == new_rows
+    # Check for SUN_ALT
+    hdua = fits.open(fa)
+    tbl = Table(hdua[1].data)
+    pytest.set_trace()
 
 
 def test_traces_2():
@@ -167,6 +155,7 @@ def test_traces_2():
 ### tests: all before rerun calcos
 
 
+'''
 def test_addcolumns():
     datafld=tst_path+'corrtag/'
     datastr='01'
@@ -199,6 +188,7 @@ def test_addcolumns():
         ind=1
     np.testing.assert_allclose(max(sunaltf),sunmax)
     np.testing.assert_allclose(min(sunaltf),sunmin)
+'''
 
 
 def test_get_hvlevels():
@@ -221,5 +211,19 @@ def test_modify_phacorr():
             assert hdu0.header['PHACORR'] == 'PERFORM'
 
 
-
-
+def test_change_pha():
+    # Copy 1 over
+    calibfld = tst_path + 'calibs/'
+    phafiles = glob.glob(calibfld + '*pha.fits')
+    raw_file = phafiles[0]
+    root = raw_file[raw_file.rfind('/')+1:]
+    new_file = data_path('calibs/'+root)
+    copyfile(raw_file,new_file)
+    # Run on new files
+    new_calibs = data_path('calibs/')
+    utils.change_pha(new_calibs)#, 2, 15)
+    # Test
+    phafiles = glob.glob(data_path('calibs/*pha.fits'))
+    hdu = fits.open(phafiles[0])
+    head1 = hdu[1].header
+    assert head1['PHALOWRA'] == 2

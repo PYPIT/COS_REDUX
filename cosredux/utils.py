@@ -164,6 +164,8 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     outfile : str, optional
       If given, generate a new FITS file
     clobber : bool, optional
+    add_sun_target_info : bool, optional
+      Should be True for a corrtag combine
 
     Returns
     -------
@@ -183,6 +185,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
             head0 = hdu[0].header
         else:
             pass # Maybe we should add HISTORY and COMMENT lines to header
+
         tbllist.append(tbl1)
         hdu.close()
 
@@ -265,9 +268,11 @@ def find_fcc(calibfld):
             fcc = fccs[1]
     return fcc
 
-
-def add_sun_target_columns(corrtag_files_n, coadded_file, outfile, clobber=True):
+'''
+def add_sun_target_columns(corrtag_files_n, clobber=True):
     """  Add SUN_ALT and TARGET_ALT columns to coadded file
+     WOULD NEED TO INTERPOLATE!
+     SHOULD UPDATE TABLE1 in EACH CORRTAG FILE
 
     corrtag_files_n : list
       List of corrtag files
@@ -298,6 +303,7 @@ def add_sun_target_columns(corrtag_files_n, coadded_file, outfile, clobber=True)
     hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
     hdu.writeto(outfile, clobber=clobber)
     ##hdu.close()
+'''
 
 
 def get_hvlevels(files):
