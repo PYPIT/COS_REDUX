@@ -266,12 +266,15 @@ def find_fcc(calibfld):
     return fcc
 
 
-def addcolumns(corrtag_files_n, fn, fn2, clobber=True):
-    """
+def add_sun_target_columns(corrtag_files_n, coadded_file, outfile, clobber=True):
+    """  Add SUN_ALT and TARGET_ALT columns to coadded file
 
-    :param corrtag_files_n: list
-    :param fn: str
-    :param fn2: str
+    corrtag_files_n : list
+      List of corrtag files
+    coadded_file : str
+      Filename of coadded corrtag file
+    outfile : str
+      Output filename
     :return:
     """
     sunalts = []
@@ -286,27 +289,38 @@ def addcolumns(corrtag_files_n, fn, fn2, clobber=True):
         limbangs = np.append(limbangs, limbangf)
     # print(max(sunalt),len(sunalt),len(sunalt1))
 
-    import pyfits
-    data = pyfits.open(fn)[1].data
+    data = fits.open(coadded_file)[1].data
     cols = []
-    cols.append(
-        pyfits.Column(name='SUN_ALT', format='1E', array=sunaltf)
-    )
-    cols.append(
-        pyfits.Column(name='LimbAng', format='1E', array=limbangf)
-    )
+    cols.append( fits.Column(name=str('SUN_ALT'), format='E', array=sunaltf) )
+    cols.append( fits.Column(name=str('LimbAng'), format='E', array=limbangf) )
     orig_cols = data.columns
-    new_cols = pyfits.ColDefs(cols)
-    hdu = pyfits.BinTableHDU.from_columns(orig_cols + new_cols)
-    hdu.writeto(fn2, clobber=clobber)
+    new_cols = fits.ColDefs(cols)
+    hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
+    hdu.writeto(outfile, clobber=clobber)
     ##hdu.close()
 
 
 def get_hvlevels(files):
-    for file in files:
-        hdu = fits.open(file)
-        hva, hvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
-        print(file, hva, hvb)
+    """ Grab the HV Levels from a given file
+    Parameters
+    ----------
+    files : list of files
+
+    Returns
+    -------
+    hva : list
+     list of HVLEVELA values
+    hvb : list
+     list of HVLEVELB values
+
+    """
+    hva, hvb = [], []
+    for ifile in files:
+        hdu = fits.open(ifile)
+        ihva, ihvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
+        hva.append(ihva)
+        hvb.append(ihvb)
+        print("HVA={:g} and HVB={:g} in file {:s}".format(ihva, ihvb, ifile))
         hdu.close()
     return hva, hvb
 
@@ -325,17 +339,28 @@ def cl_file(darks_a, darks_b, clfile):
 
 
 
-def change_pha(calibfld, low, up):
-    phafile = glob.glob(calibfld + '*pha.fits')[0]
-    hdu = fits.open(phafile)
-    head1 = hdu[1].header
-    with fits.open(phafile, 'update') as f:
-        head1 = f[1].header
-        head1['PHALOWRA'] = 2
-        head1['PHALOWRB'] = 2
-        head1['PHAUPPRA'] = 15
-        head1['PHAUPPRB'] = 15
-    hdu.close()  ###q hdu? f.close() ?  close file?
+def change_pha(calibfld, low=2, up=15):
+    """ Modify PHA values in calibration PHA files
+    Worseck recommends doing this file by file..
+
+    Parameters
+    ----------
+    calibfld
+    low : int, optional
+    up : int, optional
+
+    Returns
+    -------
+
+    """
+    phafiles = glob.glob(calibfld + '*pha.fits')
+    for phafile in phafiles:
+        with fits.open(phafile, 'update') as f:
+            head1 = f[1].header
+            head1['PHALOWRA'] = low
+            head1['PHALOWRB'] = low
+            head1['PHAUPPRA'] = up
+            head1['PHAUPPRB'] = up
 
 
 def modify_phacorr(rawfiles):

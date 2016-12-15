@@ -38,6 +38,22 @@ def test_crude():
     if show:
         trace.show_traces(wave, yfull, obj_y, arc_y)
 
+def test_change_pha():
+    # Copy 1 over
+    calibfld = tst_path + 'calibs/'
+    phafiles = glob.glob(calibfld + '*pha.fits')
+    raw_file = phafiles[0]
+    root = raw_file[raw_file.rfind('/')+1:]
+    new_file = data_path('calibs/'+root)
+    copyfile(raw_file,new_file)
+    # Run on new files
+    new_calibs = data_path('calibs/')
+    utils.change_pha(new_calibs)#, 2, 15)
+    # Test
+    phafiles = glob.glob(data_path('calibs/*pha.fits'))
+    hdu = fits.open(phafiles[0])
+    head1 = hdu[1].header
+    assert head1['PHALOWRA'] == 2
 
 def test_find_dark():
     # Setup
@@ -157,7 +173,7 @@ def test_addcolumns():
     fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
     corrtag_files_a = glob.glob(datafld + '*_corrtag_a.fits')
     fa2 = data_path('l' + datastr + 'corrtagsapp_a2.fits')
-    utils.addcolumns(corrtag_files_a, fa, fa2)
+    utils.add_sun_target_columns(corrtag_files_a, fa, fa2)
     #Test on columns names and first elements, or min and max values
     hdulist = fits.open(fa2)
     cols = hdulist[1].columns
@@ -170,7 +186,7 @@ def test_addcolumns():
     hdulist.close()
     ind=0
     sunmax=-1
-    sunmin=-1
+    sunmin=99999.
     for file in corrtag_files_a:
         hdulist = fits.open(file)
         #cols = hdulist[3].columns
@@ -181,32 +197,25 @@ def test_addcolumns():
             sunmin = min([sunmin, min(sunaltf1)])
         hdulist.close()
         ind=1
-    assert max(sunaltf) == sunmax
-    assert min(sunaltf) == sunmin
+    np.testing.assert_allclose(max(sunaltf),sunmax)
+    np.testing.assert_allclose(min(sunaltf),sunmin)
 
 
 def test_get_hvlevels():
     datastr = '01'
-    ff = data_path('l' + datastr + 'corrtagsapp_a.fits')
-    hva, hvb = utils.get_hvlevels(ff)
-    assert hva == 167
-    assert hvb == 169
+    ff = tst_path+'l' + datastr + 'corrtagsapp_a.fits'
+    hva, hvb = utils.get_hvlevels([ff])
+    assert hva[0] == 167
+    assert hvb[0] == 169
 
 
-def test_change_pha():
-    calibfld = tst_path + 'calibs/'
-    utils.change_pha(calibfld, 2, 15)
-    phafile = glob.glob(calibfld + '*pha.fits')[0]
-    hdu = fits.open(phafile)
-    head1 = hdu[1].header
-    assert head1['PHALOWRA'] == 2
 
 
 def test_modify_phacorr():
     datafld0 = tst_path + 'raw/'
     raw_files = glob.glob(datafld0 + '*rawtag*')
     utils.modify_phacorr(raw_files)
-    for rawfile in rawfiles:
+    for rawfile in raw_files:
         with fits.open(rawfile) as f:
             hdu0 = f[0]
             assert hdu0.header['PHACORR'] == 'PERFORM'
