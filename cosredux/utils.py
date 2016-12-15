@@ -235,9 +235,7 @@ def find_darks(darksfld, scifile, segm, ndays=90.):
     folder = darksfld
     darksfiles = glob.glob(darksfld + '*' + segm + '.fits')
     n = len(darksfiles)
-    ###d boolstr=[0.]*n
     times = [''] * n
-    ###d dd=[0]*n
     dlist = []
 
     # read header
@@ -257,11 +255,9 @@ def find_darks(darksfld, scifile, segm, ndays=90.):
     return dlist
 
 
-###n:
 def find_fcc(calibfld):
-    fcd = calibfld + 'x6q17586l_1dx.fits'  # downloaded
+    fcd = calibfld + 'x6q17586l_1dx.fits'
     fccs = glob.glob(calibfld + '*_1dx.fits')
-    ###ch
     if len(fccs) == 2:
         if fccs[0] != fcd:
             fcc = fccs[0]
@@ -270,8 +266,14 @@ def find_fcc(calibfld):
     return fcc
 
 
-###n:
-def addcolumns(corrtag_files_n, fn, fn2):
+def addcolumns(corrtag_files_n, fn, fn2, clobber=True):
+    """
+
+    :param corrtag_files_n: list
+    :param fn: str
+    :param fn2: str
+    :return:
+    """
     sunalts = []
     limbangs = []
     for file in corrtag_files_n:
@@ -282,7 +284,6 @@ def addcolumns(corrtag_files_n, fn, fn2):
         hdu.close()
         sunalts = np.append(sunalts, sunaltf)
         limbangs = np.append(limbangs, limbangf)
-        # https://docs.scipy.org/doc/numpy/reference/generated/numpy.append.html
     # print(max(sunalt),len(sunalt),len(sunalt1))
 
     import pyfits
@@ -297,15 +298,17 @@ def addcolumns(corrtag_files_n, fn, fn2):
     orig_cols = data.columns
     new_cols = pyfits.ColDefs(cols)
     hdu = pyfits.BinTableHDU.from_columns(orig_cols + new_cols)
-    hdu.writeto(fn2, clobber=True)
+    hdu.writeto(fn2, clobber=clobber)
     ##hdu.close()
 
 
 def get_hvlevels(files):
     for file in files:
         hdu = fits.open(file)
-        print(file, hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB'])
+        hva, hvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
+        print(file, hva, hvb)
         hdu.close()
+    return hva, hvb
 
 
 def cl_file(darks_a, darks_b, clfile):
@@ -316,18 +319,10 @@ def cl_file(darks_a, darks_b, clfile):
     f = open(clfile, 'w')
 
     for file in darks_a:
-        f.write('calcos ' + file + '\n')
+        f.write('calcos ' + file + '\n') #calcos [dark1]_rawtag_a.fits ...
     for file in darks_b:
         f.write('calcos' + file + '\n')
 
-
-"""
-  calcos [dark1]_rawtag_a.fits
-  calcos [dark1]_rawtag_b.fits
-  calcos [dark2]_rawtag_a.fits
-  calcos [dark2]_rawtag_b.fits
-  ...
-"""
 
 
 def change_pha(calibfld, low, up):
@@ -352,7 +347,7 @@ def modify_phacorr(rawfiles):
             hdu0.header['PHACORR'] = 'PERFORM'
 
 
-def change_dq_wgt(folder2):
+def change_dq_wgt(folder2, clobber=True):
     x1dfiles = glob.glob(folder2 + '*_x1d*.fits')
 
     for i in np.arange(len(x1dfiles)):

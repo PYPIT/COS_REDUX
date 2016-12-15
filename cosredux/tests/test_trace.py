@@ -148,3 +148,69 @@ def test_traces_2():
     np.testing.assert_allclose(traces_b[0], 525.9885, rtol=1e-4) #525.9885
    ## pytest.set_trace()
 
+### tests: all before rerun calcos
+
+
+def test_addcolumns():
+    datafld=tst_path+'corrtag/'
+    datastr='01'
+    fa = data_path('l' + datastr + 'corrtagsapp_a.fits')
+    corrtag_files_a = glob.glob(datafld + '*_corrtag_a.fits')
+    fa2 = data_path('l' + datastr + 'corrtagsapp_a2.fits')
+    utils.addcolumns(corrtag_files_a, fa, fa2)
+    #Test on columns names and first elements, or min and max values
+    hdulist = fits.open(fa2)
+    cols = hdulist[1].columns
+    ##assert np.sum(np.array(nrows)) == new_rows
+    assert 'SUN_ALT' in cols.names
+    assert 'LimbAng' in cols.names
+    tbl = Table(hdulist[1].data)
+    sunaltf = tbl['SUN_ALT']
+    limbangf = tbl['LimbAng']     #['TARGET_ALT']
+    hdulist.close()
+    ind=0
+    sunmax=-1
+    sunmin=-1
+    for file in corrtag_files_a:
+        hdulist = fits.open(file)
+        #cols = hdulist[3].columns
+        tbl = Table(hdulist[3].data)
+        sunaltf1=tbl['SUN_ALT']
+        if ind == 1:
+            sunmax = max([sunmax,max(sunaltf1)])
+            sunmin = min([sunmin, min(sunaltf1)])
+        hdulist.close()
+        ind=1
+    assert max(sunaltf) == sunmax
+    assert min(sunaltf) == sunmin
+
+
+def test_get_hvlevels():
+    datastr = '01'
+    ff = data_path('l' + datastr + 'corrtagsapp_a.fits')
+    hva, hvb = utils.get_hvlevels(ff)
+    assert hva == 167
+    assert hvb == 169
+
+
+def test_change_pha():
+    calibfld = tst_path + 'calibs/'
+    utils.change_pha(calibfld, 2, 15)
+    phafile = glob.glob(calibfld + '*pha.fits')[0]
+    hdu = fits.open(phafile)
+    head1 = hdu[1].header
+    assert head1['PHALOWRA'] == 2
+
+
+def test_modify_phacorr():
+    datafld0 = tst_path + 'raw/'
+    raw_files = glob.glob(datafld0 + '*rawtag*')
+    utils.modify_phacorr(raw_files)
+    for rawfile in rawfiles:
+        with fits.open(rawfile) as f:
+            hdu0 = f[0]
+            assert hdu0.header['PHACORR'] == 'PERFORM'
+
+
+
+

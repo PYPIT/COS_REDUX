@@ -164,7 +164,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     if segment == 'FUVA':
         ymin, ymax, ytl = 300, 700, 550
     elif segment == 'FUVB':
-        ymin, ymax, ytl = 360, 760, 610 
+        ymin, ymax, ytl = 360, 760, 610
     else:
         raise IOError("Not ready for this segment")
     # Prepare to modify table
