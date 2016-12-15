@@ -369,7 +369,19 @@ def change_pha(calibfld, low=2, up=15):
             head1['PHAUPPRB'] = up
 
 
-def modify_phacorr(rawfiles):
+def modify_phacorr(rawtag_path):
+    """
+    Parameters
+    ----------
+    rawtag_path : str
+      Path to rawtag files
+
+    Returns
+    -------
+
+    """
+    # Find rawtag files
+    rawfiles = glob.glob(rawtag_path+'/*rawtag*')
     # Loop on the rawtag files
     for rawfile in rawfiles:
         print("Modifying header cards for rawtag file: {:s}".format(rawfile))
