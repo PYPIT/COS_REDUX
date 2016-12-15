@@ -361,6 +361,7 @@ def change_pha(calibfld, low=2, up=15):
     """
     phafiles = glob.glob(calibfld + '*pha.fits')
     for phafile in phafiles:
+        print("Updating PHA values in {:s}".format(phafile))
         with fits.open(phafile, 'update') as f:
             head1 = f[1].header
             head1['PHALOWRA'] = low
