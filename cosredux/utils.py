@@ -420,37 +420,39 @@ def modify_phacorr(rawtag_path):
             hdu0.header['PHACORR'] = 'PERFORM'
 
 
-def change_dq_wgt(folder2, clobber=True):
-    x1dfiles = glob.glob(folder2 + '*_x1d*.fits')
+def change_dq_wgt(x1d_folder, clobber=True):
+    """ Update DQ values in x1d frames
 
-    for i in np.arange(len(x1dfiles)):
+    Parameters
+    ----------
+    x1d_folder : str
+    clobber
+
+    Returns
+    -------
+
+    """
+    x1dfiles = glob.glob(x1d_folder + '*_x1d*.fits')
+
+    clobber = True
+    for filename in x1dfiles:
         # read DQ
-        filename = x1dfiles[i]
         hdu = fits.open(filename)
         tbl = Table(hdu[1].data)
-        dq = tbl['DQ']
-        # dqwgt
-        dqwgt = dq
-
-        # param: output file is the same
-        outfil = filename
-        clobber = True
 
         # without for:
         badDQ = (tbl['DQ'] > 2) & (tbl['DQ'] != 1024)
         tbl['DQ_WGT'][badDQ] = 0
+        goodDQ = tbl['DQ'] == 1024
+        tbl['DQ_WGT'][goodDQ] = 1
 
-        tbl2 = tbl
-        tbl2['DQ_WGT'] = dqwgt
-
-        # Write?
-        if outfil is not None:
-            hdu = fits.open(filename)
-            phdu = fits.PrimaryHDU()
-            phdu.header = hdu[0].header
-            thdu = fits.table_to_hdu(tbl2)
-            thdu.header = hdu[1].header
-            thdulist = fits.HDUList([phdu, thdu])
-            thdulist.writeto(outfil, clobber=clobber)
+        # Write
+        hdu = fits.open(filename)
+        phdu = fits.PrimaryHDU()
+        phdu.header = hdu[0].header
+        thdu = fits.table_to_hdu(tbl)
+        thdu.header = hdu[1].header
+        thdulist = fits.HDUList([phdu, thdu])
+        thdulist.writeto(filename, clobber=clobber)
 
         hdu.close()
