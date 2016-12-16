@@ -292,6 +292,7 @@ def find_fcc(calibfld):
     return fcc
 
 '''
+
 def add_sun_target_columns(corrtag_files_n, clobber=True):
     """  Add SUN_ALT and TARGET_ALT columns to coadded file
      WOULD NEED TO INTERPOLATE!
