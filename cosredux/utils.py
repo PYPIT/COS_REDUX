@@ -15,6 +15,7 @@ from xastropy.xutils import xdebug as xdb
 
 def dark_calcos_script(dark_files, segm, science_folder):
     """ Generate a simple script for running calcos on the series of dark frames
+    Also copy in .spt files from science folder
 
     Parameters
     ----------
