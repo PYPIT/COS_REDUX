@@ -13,8 +13,29 @@ from astropy.io import fits
 from xastropy.xutils import xdebug as xdb
 
 
+def dark_calcos_script(dark_files, segm, science_folder):
+    """ Generate a simple script for running calcos on the series of dark frames
 
-def modify_rawtag_for_calcos(path):
+    Parameters
+    ----------
+    dark_files : list
+    science_folder : str
+      path to where science reduction is performed
+    """
+    # Create dark folder
+    try:
+        os.mkdir(science_folder+'/darks_{:s}/'.format(segm))
+    except OSError: # likely already exists
+        pass
+    #
+    clfile = science_folder+'/darks/calcos_darkscript_{:s}.cl'.format(segm)
+    with open(clfile, 'w') as f:
+        for dark_file in dark_files:
+            f.write('calcos {:s}'.format(dark_file))
+
+
+
+def modify_rawtag_for_calcos(path, verbose=True):
     """ Open rawtag files, edit header
     WARNING: Over writes the header of the previous file
 
@@ -30,7 +51,8 @@ def modify_rawtag_for_calcos(path):
     rawfiles = glob.glob(path+'/*rawtag*')
     # Loop on the rawtag files
     for rawfile in rawfiles:
-        print("Modifying header cards for rawtag file: {:s}".format(rawfile))
+        if verbose:
+            print("Modifying header cards for rawtag file: {:s}".format(rawfile))
         with fits.open(rawfile, 'update') as f:
             hdu0 = f[0]
             hdu0.header['FLATCORR'] = 'OMIT' #[flatfielding of Poisson data creates fractional counts, which are hard to interpret, COS flatfielding is approximate anyhow]
