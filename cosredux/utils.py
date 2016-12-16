@@ -480,3 +480,61 @@ def change_dq_wgt(x1d_folder, clobber=True):
         thdulist.writeto(filename, clobber=clobber)
 
         hdu.close()
+
+
+
+def separate_darks(darksfiles, path):
+    """
+
+    Parameters
+    ----------
+    darksfiles - list
+       List with darks files - corrtag files?
+    path - str
+       path
+
+    Returns
+    -------
+
+    """
+    # hvlevela, hvlevelb values
+    n=len(darksfiles)
+    import shutil
+    # loop through darks
+    hva, hvb = [], []
+    seg = []
+    for ifile in darksfiles:
+        hdu = fits.open(ifile)
+        ihva, ihvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
+        hva.append(ihva)
+        hvb.append(ihvb)
+        iseg = hdu[0].header['SEGMENT']
+        seg.append(iseg)
+
+    # find unique hvlevela, hvlevelb
+    uniq_hva=np.unique(hva)
+    uniq_hvb=np.unique(hvb)
+
+    # generate folder for each
+    for ihva in uniq_hva:
+        dirname=path+'a_'+ihva
+        try:
+            os.stat(dirname)
+        except:
+            os.mkdir(dirname)
+
+    for ihvb in uniq_hvb:
+        dirname = path +'b_' + ihvb
+        try:
+            os.stat(dirname)
+        except:
+            os.mkdir(dirname)
+
+    # move corrtags into folders
+    for i in np.arange(len(darksfiles)):
+        if seg[i] == 'FUVA':
+            dirname=path+seg[i]+hva[i]
+        if seg[i] == 'FUVB':
+            dirname = path + seg[i] + hvb[i]
+        # move file in the folder
+        shutil.move(path+darksfiles[i],dirname+darksfiles[i])
