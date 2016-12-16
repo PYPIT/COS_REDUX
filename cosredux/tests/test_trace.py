@@ -38,6 +38,24 @@ def test_crude():
     if show:
         trace.show_traces(wave, yfull, obj_y, arc_y)
 
+def test_change_dq():
+    try:
+        os.mkdir(data_path('x1d'))
+    except OSError: # likely already exists
+        pass
+    # Copy 1 over
+    datafld0 = tst_path + 'x1d/'
+    x1d_files = glob.glob(datafld0+'*x1d*')
+    raw_file = x1d_files[0]
+    root = raw_file[raw_file.rfind('/')+1:]
+    new_file = data_path('x1d/'+root)
+    copyfile(raw_file, new_file)
+    # Run
+    utils.change_dq_wgt(data_path('x1d/'))
+    # Test
+    tbl = Table.read(new_file)
+    badDQ = (tbl['DQ'] > 2) & (tbl['DQ'] != 1024)
+    assert np.sum(tbl['DQ_WGT'][badDQ]) == 0
 
 def test_find_dark():
     # Setup
@@ -235,3 +253,5 @@ def test_change_pha():
     hdu = fits.open(phafiles[0])
     head1 = hdu[1].header
     assert head1['PHALOWRA'] == 2
+
+
