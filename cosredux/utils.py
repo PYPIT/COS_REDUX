@@ -498,7 +498,6 @@ def separate_darks(darksfiles, path):
 
     """
     # hvlevela, hvlevelb values
-    n=len(darksfiles)
     import shutil
     # loop through darks
     hva, hvb = [], []
@@ -510,6 +509,7 @@ def separate_darks(darksfiles, path):
         hvb.append(ihvb)
         iseg = hdu[0].header['SEGMENT']
         seg.append(iseg)
+        hdu.close()
 
     # find unique hvlevela, hvlevelb
     uniq_hva=np.unique(hva)
@@ -517,24 +517,31 @@ def separate_darks(darksfiles, path):
 
     # generate folder for each
     for ihva in uniq_hva:
-        dirname=path+'a_'+ihva
+        dirname=path+'a_'+str(ihva)
         try:
             os.stat(dirname)
         except:
             os.mkdir(dirname)
 
     for ihvb in uniq_hvb:
-        dirname = path +'b_' + ihvb
+        dirname = path +'b_' + str(ihvb)
         try:
             os.stat(dirname)
         except:
             os.mkdir(dirname)
 
+    # files names without path
+    filesonly = []
+    for dstr in darksfiles:
+        strnew = dstr.split("/")[-1]
+        filesonly.append(strnew)
+
     # move corrtags into folders
     for i in np.arange(len(darksfiles)):
         if seg[i] == 'FUVA':
-            dirname=path+seg[i]+hva[i]
+            dirname = path + str('a_') + str(hva[i]) + str('/')
         if seg[i] == 'FUVB':
-            dirname = path + seg[i] + hvb[i]
+            dirname = path + str('b_') + str(hvb[i]) + str('/')
         # move file in the folder
-        shutil.move(path+darksfiles[i],dirname+darksfiles[i])
+        shutil.move(darksfiles[i], dirname + filesonly[i])
+
