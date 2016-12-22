@@ -14,6 +14,8 @@ from astropy.io import fits
 
 from xastropy.xutils import xdebug as xdb
 
+from cosredux import utils as cr_utils
+
 
 def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywidth=50., low_yoff=-10.,
                           check=False):
@@ -70,7 +72,7 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
 
 
 
-def get_pha_values_science(bg_region, corrtagfile):
+def get_pha_values_science(region, corrtagfile, background=True):
     """ Grab the PHA values in the input region
     Parameters
     ----------
@@ -83,6 +85,10 @@ def get_pha_values_science(bg_region, corrtagfile):
     xdopp_max : float
 
     """
+    if background:
+        reg_keys = ['lower', 'upper']
+    else:
+        reg_keys = ['extraction']
     # Read
     data = Table.read(corrtagfile)
     wave = data['WAVELENGTH']
@@ -94,9 +100,9 @@ def get_pha_values_science(bg_region, corrtagfile):
     # Loop
     all_phas = []
     all_xdopp = []
-    for key in ['lower', 'upper']:
+    for key in reg_keys:
         try:
-            x1,x2,y1,y2 = bg_region[key]
+            x1,x2,y1,y2 = region[key]
         except KeyError:
             print("No region={:s} provided.  Skipping it".format(key))
             continue
@@ -149,6 +155,43 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
     # Return
     return all_phas
 
+def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_mnx, apert=25., plot=False,
+                          npix=16385):
+
+    # Read coadded dark
+    dark_data = Table.read(coadd_dark_file)
+    xfull = dark_data['XFULL'].data
+    dq=dark_data['DQ']
+    yfull=dark_data['YFULL']
+    pha=dark_data['PHA']
+
+    # Get SHIFT1X from science header
+    sci_header = fits.open(science_exp_file)[1].header
+    if segm == 'FUVA':
+        sci_shift = sci_header['SHIFT1A']
+    elif segm == 'FUVB':
+        sci_shift = sci_header['SHIFT1B']
+    else:
+        raise IOError("Bad segm input")
+
+    # Extract
+    in_extraction = (dq == 0) & (abs(yfull-obj_tr) <= apert) & (pha >= pha_mnx[0]) & (pha <= pha_mnx[1])
+    pha_ex = pha[in_extraction]
+    xfull_ex = xfull[in_extraction]
+
+    # Histogram
+    xshift = xfull_ex - sci_shift
+    hbins=min(xshift)+np.arange(npix)*(max(xshift)-min(xshift))/(npix-1.)
+    hist, edges = np.histogram(xshift, bins=hbins)
+
+    # Plot
+    if plot:
+        plt.plot(hbins[:-1]+0.5, hist)
+        plt.show()
+
+    # Return
+    return hist, pha_ex
+
 def perform_kstest(sci_phas, dark_phas, criterion=0.1):
     """
     Parameters
@@ -168,4 +211,98 @@ def perform_kstest(sci_phas, dark_phas, criterion=0.1):
         return True
     else:
         return False
+
+def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4, show_spec=False,
+                      N_smooth=500, verbose=True):
+    """
+    Parameters
+    ----------
+    exposures : list
+      List of exposures without PHA filtering
+    bg_region
+    obj_tr
+    segm
+    defaults
+    min_ndark
+    show_spec
+    N_smooth
+
+    Returns
+    -------
+
+    """
+
+    iend = exposures[0].rfind('/')
+    sci_path = exposures[0][0:iend+1]
+    dark_path = sci_path+'darks_'
+    if segm == 'FUVA':
+        dark_path += 'a/'
+        sub_seg = 'a'
+    elif segm == 'FUVB':
+        dark_path += 'b/'
+        sub_seg = 'b'
+    # HVLEVELs
+    hva, hvb = cr_utils.get_hvlevels(exposures)
+    # Loop
+    for ss, exposure in enumerate(exposures):
+        if verbose:
+            print("Working on exposure: {:s}".format(exposure))
+        # Paths
+        # PHA values in science region + xdopp values
+        pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure)
+        # Find list of darks
+        if segm == 'FUVA':
+            sub_folder = 'a_{:d}/'.format(hva[ss])
+        elif segm == 'FUVB':
+            sub_folder = 'b_{:d}/'.format(hvb[ss])
+        dark_list = glob.glob(dark_path+sub_folder+'*corrtag*')
+        # Loop on Darks -- Keep list of good ones
+        if verbose:
+            print("Matching darks to the exposure")
+        gd_darks= []
+        for darkfile in dark_list:
+            # PHAS
+            drk_phas = get_pha_values_dark(bg_region, darkfile, (xdopp_min,xdopp_max))
+            # KS
+            if perform_kstest(pha_values, drk_phas):
+                gd_darks.append(darkfile)
+            ndark = len(gd_darks)
+        if ndark < min_ndark:
+            print("Need more darks.  Probably can just change criterion")
+            return
+        else:
+            print("We have {:d} darks to use".format(ndark))
+
+        # Coadd
+        i0 = exposure.rfind('/')
+        i1 = exposure.rfind('_corrtag')
+        root_file = exposure[i0+1:i1]
+        dark_coadd_file = dark_path+sub_folder+root_file+'_darks.fits'
+        _ = cr_utils.coadd_bintables(gd_darks, outfile=dark_coadd_file)
+
+        # Scaling
+        coadd_drk_phas = get_pha_values_dark(bg_region, dark_coadd_file, (xdopp_min,xdopp_max))
+        scale_sci_drk = float(pha_values.size) / coadd_drk_phas.size
+        if verbose:
+            print("Will use scale factor = {:g}".format(scale_sci_drk))
+
+        # Extract
+        spec, pha_ex = extract_dark_spectrum(dark_coadd_file, exposure, obj_tr, segm, defaults['pha_mnx'], plot=show_spec)
+        if verbose:
+            print("Extracting..")
+
+        # Smooth
+        smooth_spec = np.convolve(spec, np.ones((N_smooth,))/N_smooth, mode='same')
+
+        # Generate a dark spectrum file
+        outfile = sci_path+root_file+'_{:s}_bkgd.fits'.format(sub_seg)
+        tbl = Table()
+        tbl['DARK'] = smooth_spec
+        tbl.write(outfile, overwrite=True)
+        if verbose:
+            print("Wrote background spectrum to {:s}".format(outfile))
+
+
+
+
 
