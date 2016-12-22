@@ -10,6 +10,7 @@ from astropy.io import fits
 from xastropy.xutils import xdebug as xdb
 
 from cosredux import utils
+from cosredux import io as cr_io
 
 
 def crude_histogram(yfull, ymin=300, ymax=700, ytl=550, pk_window=4.5, verbose=False):
@@ -143,6 +144,8 @@ def show_traces(wave, yfull, obj_y, arc_y):
 def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
            outfil=None, clobber=False, show=False, calcos_version='v2'):
     """
+    Parameters
+    ----------
     filename : str
       File for which we want to find the trace. E. g. it could be corrtag file.
     calib_path : str
@@ -159,6 +162,13 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     outfil : str, optional
     clobber : bool, optional
     show : bool, optional
+
+    Returns
+    -------
+    obj_y : float
+      Estimated y position of the object
+    arc_y : float
+      Estimated y position of the arc
     """
     assert LP == 'LP3'  # Only one coded
     if segment == 'FUVA':
@@ -188,5 +198,9 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     #pdb.set_trace()
     utils.modify_table_value(filecal, 'B_SPEC', row_dict, obj_y, outfil=filecal, clobber=clobber)
     print('Updated trace for segment={:s} in {:s}'.format(segment, filecal))
+
+    # Write to hard-drive
+    outfile = filename.replace('.fits', '_traces.json')
+    cr_io.write_traces(obj_y, arc_y, outfile)
 
     return obj_y, arc_y
