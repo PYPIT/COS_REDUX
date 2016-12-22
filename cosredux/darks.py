@@ -297,7 +297,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
         # Generate a dark spectrum file
         outfile = sci_path+root_file+'_{:s}_bkgd.fits'.format(sub_seg)
         tbl = Table()
-        tbl['DARK'] = smooth_spec
+        tbl['DARK'] = smooth_spec * scale_sci_drk
         tbl.write(outfile, overwrite=True)
         if verbose:
             print("Wrote background spectrum to {:s}".format(outfile))

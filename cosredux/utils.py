@@ -36,7 +36,7 @@ def dark_calcos_script(dark_files, segm, science_folder):
 
 
 
-def modify_rawtag_for_calcos(path, verbose=True):
+def modify_rawtag_for_calcos(path, verbose=False):
     """ Open rawtag files, edit header
     WARNING: Over writes the header of the previous file
 
