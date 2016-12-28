@@ -143,8 +143,6 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None):
     # Spline
     sens_func = interp1d(wave_calib[gdwv], calib[gdwv], bounds_error=False, fill_value=0.)  # cubic behaves badly
 
-    # ####################
-    # FINISH
 
     # Total counts in science and background
     total_counts = np.zeros_like(wave)
@@ -157,26 +155,55 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None):
         bkgd = Table.read(dark_files[ss])
         total_dark += dqw * bkgd['DARK'].data
 
+    # Bin
+    if bin is not None:
+        # Check
+        if bin not in [2,3]:
+            raise IOError("Only ready for binning by 2 or 3 channels")
+        # Ugly for loop
+        nchannel = len(total_counts)
+        new_tot_counts, new_tot_dark, new_tot_time, new_wave, new_dqmin, new_DQW = [], [], [], [], [], []
+        for kk in np.arange(0, nchannel, bin):
+            # Simple stuff sums
+            new_tot_counts.append(np.sum(total_counts[kk:kk+bin]))
+            new_tot_dark.append(np.sum(total_dark[kk:kk+bin]))
+            new_tot_time.append(np.sum(total_time[kk:kk+bin]))
+            new_dqmin.append(np.min(dqmin[kk:kk+bin]))
+            new_DQW.append(np.max(DQWmax[kk:kk+bin]))
+            # Wavelength
+            new_wave.append(np.mean(wave[kk:kk+bin]))
+        # Turn into arrays
+        new_tot_counts = np.array(new_tot_counts)
+        new_tot_dark = np.array(new_tot_dark)
+        new_tot_time = np.array(new_tot_time)
+        new_wave = np.array(new_wave)
+    else:
+        new_tot_counts, new_tot_dark, new_tot_time, new_wave = total_counts, total_dark, total_time, wave
+        new_dqmin, new_DQW = dqmin, DQWmax
+
+
     # Flux array
-    flux = np.zeros_like(total_time)
-    calib = sens_func(wave)
-    gd_time_sens = (total_time > 0.) & (calib > 0.)
-    flux[np.where(gd_time_sens)[0]] = (total_counts[gd_time_sens]-total_dark[gd_time_sens]) / (calib[gd_time_sens] * total_time[gd_time_sens])
+    flux = np.zeros_like(new_tot_time)
+    calib = sens_func(new_wave)
+    gd_time_sens = (new_tot_time > 0.) & (calib > 0.)
+    flux[np.where(gd_time_sens)[0]] = (new_tot_counts[gd_time_sens]-new_tot_dark[gd_time_sens]) / (calib[gd_time_sens] * new_tot_time[gd_time_sens])
 
     # Simple error estimate
-    error = np.zeros_like(total_time)
-    gd_error = (total_time > 0.) & (calib > 0.) & (total_counts > 0)
-    error[np.where(gd_error)[0]] = np.sqrt(total_counts[gd_error]) / (calib[gd_error] * total_time[gd_error])
+    error = np.zeros_like(new_tot_time)
+    gd_error = (new_tot_time > 0.) & (calib > 0.) & (new_tot_counts > 0)
+    error[np.where(gd_error)[0]] = np.sqrt(new_tot_counts[gd_error]) / (calib[gd_error] * new_tot_time[gd_error])
 
     # Final spectral information
     coadd = Table()
-    coadd['wave'] = wave
+    coadd['wave'] = new_wave
     coadd['flux'] = flux
     coadd['error'] = error
-    coadd['counts'] = total_counts
-    coadd['bgkd'] = total_dark
-    coadd['DQ_MIN'] = dqmin
-    coadd['DQW_max'] = DQWmax
+    coadd['counts'] = new_tot_counts
+    coadd['bgkd'] = new_tot_dark
+    coadd['eff_time'] = new_tot_time
+    coadd['calib'] = calib
+    coadd['DQ_MIN'] = new_dqmin
+    coadd['DQW_max'] = new_DQW
 
     # Write
     coadd.write(outfile, overwrite=True)
