@@ -6,44 +6,59 @@ import numpy as np
 from astropy.table import Table
 from astropy.io import fits
 
+from linetools import utils as ltu
+
 from xastropy.xutils import xdebug as xdb
 
-def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=False):
-    """ Open a file, grab rows of interest, update the value
+def write_bg_regions(bg_region, outfile):
+    """ Write background regions to a simple JSON file
+
     Parameters
     ----------
-    filename
-    column : str
-    row_dict : dict
-    value : float, str, int
-    outfil : str, optional
-      If provided, generates a new file with the Table (and header)
+    bg_region : dict
+    outfile : str
 
     Returns
     -------
-    tbl : Table
-      Modified as desired
 
     """
-    # Read
-    tbl = Table.read(filename)
-    # Find the row(s)
-    mask = np.array([True]*len(tbl))
-    for key, item in row_dict.items():
-        mask &= (tbl[key] == item)
+    jdict = ltu.jsonify(bg_region)
+    # Write
+    ltu.savejson(outfile, jdict, easy_to_read=True, overwrite=True)
+    print("Wrote Background Regions to {:s}",outfile)
 
-    # Set value
-    tbl[column][mask] = value
 
-    # Write?
-    if outfil is not None:
-        hdu = fits.open(filename)
-        phdu = fits.PrimaryHDU()
-        phdu.header = hdu[0].header
-        thdu = fits.table_to_hdu(tbl)
-        thdu.header = hdu[1].header
-        thdulist = fits.HDUList([phdu,thdu])
-        thdulist.writeto(outfil, clobber=clobber)
+def read_traces(coadd_file):
+    """
+    Parameters
+    ----------
+    coadd_file
 
+    Returns
+    -------
+
+    """
+    trc_file = coadd_file.replace('.fits', '_traces.json')
+    tdict = ltu.loadjson(trc_file)
     # Return
-    return tbl
+    return tdict['obj'], tdict['arc']
+
+
+def write_traces(obj, arc, outfile):
+    """ Write a simple JSON file
+    Parameters
+    ----------
+    obj : float
+    arc : float
+    outfile : str
+
+    Returns
+    -------
+
+    """
+    tdict = dict(obj=obj, arc=arc)
+    jdict = ltu.jsonify(tdict)
+    # Write
+    ltu.savejson(outfile, jdict, easy_to_read=True, overwrite=True)
+    print("Wrote Traces to {:s}",outfile)
+

@@ -1,8 +1,8 @@
 .. highlight:: rest
 
-****************
-Installing PYPIT
-****************
+********************
+Installing COS_REDUX
+********************
 
 This document will describe how to install PYPIT.
 
