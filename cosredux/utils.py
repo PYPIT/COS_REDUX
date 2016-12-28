@@ -151,7 +151,7 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
             else:
                 pdb.set_trace()  # Not ready for this element
 
-    # Write
+    # Write  
     thdu = fits.table_to_hdu(lp2)
     thdulist = fits.HDUList([hdu0,thdu])
     thdulist.writeto(LP2_1dx_file, clobber=True)
