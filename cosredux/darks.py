@@ -212,6 +212,7 @@ def perform_kstest(sci_phas, dark_phas, criterion=0.1):
     else:
         return False
 
+
 def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4, show_spec=False,
                       N_smooth=500, verbose=True):
     """
@@ -234,15 +235,15 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
 
     iend = exposures[0].rfind('/')
     sci_path = exposures[0][0:iend+1]
-    dark_path = sci_path+'darks_'
-    if segm == 'FUVA':
-        dark_path += 'a/'
-        sub_seg = 'a'
-    elif segm == 'FUVB':
-        dark_path += 'b/'
-        sub_seg = 'b'
-    # HVLEVELs
     hva, hvb = cr_utils.get_hvlevels(exposures)
+    if segm == 'FUVA':
+        sub_seg = 'a'
+        hvl = hva
+    elif segm == 'FUVB':
+        sub_seg = 'b'
+        hvl = hvb
+    # HVLEVELs
+    dark_path = sci_path+'darks_'+sub_seg
     # Loop
     for ss, exposure in enumerate(exposures):
         if verbose:
@@ -251,11 +252,8 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
         # PHA values in science region + xdopp values
         pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure)
         # Find list of darks
-        if segm == 'FUVA':
-            sub_folder = 'a_{:d}/'.format(hva[ss])
-        elif segm == 'FUVB':
-            sub_folder = 'b_{:d}/'.format(hvb[ss])
-        dark_list = glob.glob(dark_path+sub_folder+'*corrtag*')
+        new_dark_path = dark_path+'_{:d}'.format(hvl[ss])+'/'
+        dark_list = glob.glob(new_dark_path+'/*corrtag*')
         # Loop on Darks -- Keep list of good ones
         if verbose:
             print("Matching darks to the exposure")
@@ -277,7 +275,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
         i0 = exposure.rfind('/')
         i1 = exposure.rfind('_corrtag')
         root_file = exposure[i0+1:i1]
-        dark_coadd_file = dark_path+sub_folder+root_file+'_darks.fits'
+        dark_coadd_file = new_dark_path+root_file+'_darks.fits'
         _ = cr_utils.coadd_bintables(gd_darks, outfile=dark_coadd_file)
 
         # Scaling
@@ -304,5 +302,232 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
 
 
 
+def dark_calcos_script(dark_files, segm, science_folder):
+    """ Generate a simple script for running calcos on the series of dark frames
+    Also copy in .spt files from science folder
+
+    Parameters
+    ----------
+    dark_files : list
+    science_folder : str
+      path to where science reduction is performed
+    """
+    # Create dark folder
+    try:
+        os.mkdir(science_folder+'/darks_{:s}/'.format(segm))
+    except OSError: # likely already exists
+        pass
+    #
+    clfile = science_folder+'/darks/calcos_darkscript_{:s}.cl'.format(segm)
+    with open(clfile, 'w') as f:
+        for dark_file in dark_files:
+            f.write('calcos {:s}'.format(dark_file))
 
 
+'''
+def separate_darks(darksfiles, path):
+    """
+
+    Parameters
+    ----------
+    darksfiles - list
+       List with darks files - corrtag files?
+    path - str
+       path
+
+    Returns
+    -------
+
+    """
+    # hvlevela, hvlevelb values
+    import shutil
+    # loop through darks
+    hva, hvb = [], []
+    seg = []
+    for ifile in darksfiles:
+        hdu = fits.open(ifile)
+        ihva, ihvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
+        hva.append(ihva)
+        hvb.append(ihvb)
+        iseg = hdu[0].header['SEGMENT']
+        seg.append(iseg)
+        hdu.close()
+
+    # find unique hvlevela, hvlevelb
+    uniq_hva=np.unique(hva)
+    uniq_hvb=np.unique(hvb)
+
+    # generate folder for each
+    for ihva in uniq_hva:
+        dirname=path+'a_'+str(ihva)
+        try:
+            os.stat(dirname)
+        except:
+            os.mkdir(dirname)
+
+    for ihvb in uniq_hvb:
+        dirname = path +'b_' + str(ihvb)
+        try:
+            os.stat(dirname)
+        except:
+            os.mkdir(dirname)
+
+    # files names without path
+    filesonly = []
+    for dstr in darksfiles:
+        strnew = dstr.split("/")[-1]
+        filesonly.append(strnew)
+
+    # move corrtags into folders
+    for i in np.arange(len(darksfiles)):
+        if seg[i] == 'FUVA':
+            dirname = path + str('a_') + str(hva[i]) + str('/')
+        if seg[i] == 'FUVB':
+            dirname = path + str('b_') + str(hvb[i]) + str('/')
+        # move file in the folder
+        shutil.move(darksfiles[i], dirname + filesonly[i])
+'''
+
+def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
+    """
+    Parameters
+    ----------
+    darksfld : str
+      Path to the darks folder
+    scifile : str
+      Science frame (could be raw, processed, etc.)
+      Requires date information in the header
+    segm : str
+      COS segment -- 'a' or 'b'
+    ndays : int
+      Number of days to search within to match to darks
+
+
+    Returns
+    -------
+    dlist : list
+      List of darks within +/- ndays
+
+    """
+    # data: date
+    hdu = fits.open(scifile)
+    head0 = hdu[0].header
+    ftime = head0['DATE']
+
+    npdays = np.timedelta64(ndays, 'D')
+
+    # find darks
+    darkfiles = glob.glob(darksfld + '*' + segm + '.fits')
+
+    dlist = []
+    for ifile in darkfiles: # in np.arange(n):
+        hdu = fits.open(ifile)
+        head1 = hdu[1].header
+        ###d dts[i]=head1['EXPTIME']  # all are 1330
+        # Query on HVL
+        ihva, ihvb = head1['HVLEVELA'], head1['HVLEVELB']
+        if segm == 'a':
+            if ihva != hvlvl:
+                continue
+        elif segm == 'b':
+            if ihvb != hvlvl:
+                continue
+        # Query on DATE
+        itime = head1['DATE-OBS']
+        dd1 = np.datetime64(itime) - np.datetime64(ftime)
+        #dd = int(str.split(str(dd1))[0])  ## dd[i]
+        if (np.abs(dd1) < npdays):  ## dd[i]
+            #print(dd1)
+            dlist.append(ifile)
+
+    # new array with darks
+    return dlist
+
+def setup_for_calcos(darksfld, scifile, segm, **kwargs):
+    """  Identify darks to process, generate sub-folder,
+    copy over, modify headers, generate calcos script
+
+    Parameters
+    ----------
+    darksfld
+    scifile : str
+      one corrtag file from a given visit
+      includes path to the scifile
+    segm
+    ndays
+
+    Returns
+    -------
+
+    """
+    from shutil import copyfile as shutilcp
+    # Path
+    rdxsci_path = scifile[0:scifile.rfind('/')+1]
+
+    # Get HVLVL
+    hva, hvb = cr_utils.get_hvlevels([scifile])
+
+    if segm == 'FUVA':
+        hvl = hva[0]
+        subseg = 'a'
+    elif segm == 'FUVB':
+        hvl = hvb[0]
+        subseg = 'b'
+
+    # Folders
+    d_subf = 'darks_'+subseg+'_{:d}'.format(hvl)
+    try:
+        os.stat(rdxsci_path+d_subf)
+    except:
+        os.mkdir(rdxsci_path+d_subf)
+
+    # Find darks
+    darks = find_darks(darksfld, scifile, subseg, hvl, **kwargs)
+
+    # Copy to folder (create if needed)
+    print("Copying dark frames into sub folder: {:s}".format(d_subf))
+    new_darks = []
+    for darkfile in darks:
+        darkname = darkfile.split("/")[-1]
+        darkfile2 = rdxsci_path+d_subf+'/'+darkname
+        # rawtag file
+        shutilcp(darkfile,darkfile2)
+        new_darks.append(darkname)
+        # spt file
+        spt_file = darkfile.replace('rawtag_{:s}.fits'.format(subseg), 'spt.fits')
+        sptname = spt_file.split("/")[-1]
+        sptfile2 = rdxsci_path+d_subf+'/'+sptname
+        shutilcp(spt_file,sptfile2)
+
+    # Edit headers
+    print("Editing dark frame headers")
+    cr_utils.modify_rawtag_for_calcos(rdxsci_path+d_subf)
+
+    # Generate calcos script
+    clfile = rdxsci_path+d_subf+'/'+d_subf+'.cl'
+    f = open(clfile, 'w')
+    for ifile in new_darks:
+        f.write('calcos ' + ifile + '\n') #calcos [dark1]_rawtag_a.fits ...
+    print("Wrote calcos script: {:s}".format(clfile))
+
+    # Return sub-folder path
+    return d_subf
+
+
+def clean_after_calcos(path):
+    """ Remove unwanted (large) files from the dark sub-folder
+    after running calcos.
+    Saves the corrtag files and the .cl script
+
+    Parameters
+    ----------
+    path : str
+      Full path to sub-folder for processed dark frames
+    """
+    all_files=glob.glob(path+'/*.fits')
+    corr_files=glob.glob(path+'/*corrtag*.fits')
+    cl_files=glob.glob(path+'/*.cl') # Save script
+    keep_files = corr_files+cl_files
+    for dfile in all_files:
+        if dfile not in keep_files:
+            os.remove(dfile)

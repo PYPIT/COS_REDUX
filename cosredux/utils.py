@@ -13,26 +13,6 @@ from astropy.io import fits
 from xastropy.xutils import xdebug as xdb
 
 
-def dark_calcos_script(dark_files, segm, science_folder):
-    """ Generate a simple script for running calcos on the series of dark frames
-    Also copy in .spt files from science folder
-
-    Parameters
-    ----------
-    dark_files : list
-    science_folder : str
-      path to where science reduction is performed
-    """
-    # Create dark folder
-    try:
-        os.mkdir(science_folder+'/darks_{:s}/'.format(segm))
-    except OSError: # likely already exists
-        pass
-    #
-    clfile = science_folder+'/darks/calcos_darkscript_{:s}.cl'.format(segm)
-    with open(clfile, 'w') as f:
-        for dark_file in dark_files:
-            f.write('calcos {:s}'.format(dark_file))
 
 
 
@@ -222,8 +202,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
         phdu.header = head0
         thdu = fits.table_to_hdu(tbltot)
         thdulist = fits.HDUList([phdu, thdu])
-        thdulist.writeto(outfile, clobber=clobber)
-        hdu.close()
+        thdulist.writeto(outfile, overwrite=clobber)
         print("Wrote outfile {:s}".format(outfile))
 
     # Return
@@ -231,55 +210,6 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
 
 
 ###n ----------------------------------------------------------------------------------------------------
-
-def find_darks(darksfld, scifile, segm, ndays=90.):
-    """
-    Parameters
-    ----------
-    darksfld : str
-      Path to the darks folder
-    scifile : str
-      Science frame (could be raw, processed, etc.)
-      Requires date information in the header
-    segm : str
-      COS segment -- 'a' or 'b'
-    ndays : float
-      Number of days to search within to match to darks
-
-
-    Returns
-    -------
-    dlist : list
-      List of darks within +/- ndays
-
-    """
-    # data: date
-    hdu = fits.open(scifile)
-    head0 = hdu[0].header
-    ftime = head0['DATE']
-
-    # find darks
-    folder = darksfld
-    darksfiles = glob.glob(darksfld + '*' + segm + '.fits')
-    n = len(darksfiles)
-    times = [''] * n
-    dlist = []
-
-    # read header
-    for i in np.arange(n):
-        file = darksfiles[i]
-        hdu = fits.open(file)
-        head1 = hdu[1].header
-        ###d dts[i]=head1['EXPTIME']  # all are 1330
-        times[i] = head1['DATE-OBS']
-        dd1 = (np.datetime64(times[i]) - np.datetime64(ftime))
-        dd = int(str.split(str(dd1))[0])  ## dd[i]
-        if (abs(dd) < ndays):  ## dd[i]
-            ###d boolstr[i]=1.
-            dlist.append(file)
-
-    # new array with darks
-    return dlist
 
 
 def find_fcc(calibfld):
@@ -356,17 +286,6 @@ def get_hvlevels(files):
     return hva, hvb
 
 
-def cl_file(darks_a, darks_b, clfile):
-    """
-    creates .cl file with darks
-    """
-    clfile = 'darkscript.cl'
-    f = open(clfile, 'w')
-
-    for file in darks_a:
-        f.write('calcos ' + file + '\n') #calcos [dark1]_rawtag_a.fits ...
-    for file in darks_b:
-        f.write('calcos' + file + '\n')
 
 
 
@@ -477,71 +396,10 @@ def change_dq_wgt(x1d_folder, clobber=True):
         thdu = fits.table_to_hdu(tbl)
         thdu.header = hdu[1].header
         thdulist = fits.HDUList([phdu, thdu])
-        thdulist.writeto(filename, clobber=clobber)
+        thdulist.writeto(filename, overwrite=clobber)
 
         hdu.close()
 
 
 
-def separate_darks(darksfiles, path):
-    """
-
-    Parameters
-    ----------
-    darksfiles - list
-       List with darks files - corrtag files?
-    path - str
-       path
-
-    Returns
-    -------
-
-    """
-    # hvlevela, hvlevelb values
-    import shutil
-    # loop through darks
-    hva, hvb = [], []
-    seg = []
-    for ifile in darksfiles:
-        hdu = fits.open(ifile)
-        ihva, ihvb = hdu[1].header['HVLEVELA'], hdu[1].header['HVLEVELB']
-        hva.append(ihva)
-        hvb.append(ihvb)
-        iseg = hdu[0].header['SEGMENT']
-        seg.append(iseg)
-        hdu.close()
-
-    # find unique hvlevela, hvlevelb
-    uniq_hva=np.unique(hva)
-    uniq_hvb=np.unique(hvb)
-
-    # generate folder for each
-    for ihva in uniq_hva:
-        dirname=path+'a_'+str(ihva)
-        try:
-            os.stat(dirname)
-        except:
-            os.mkdir(dirname)
-
-    for ihvb in uniq_hvb:
-        dirname = path +'b_' + str(ihvb)
-        try:
-            os.stat(dirname)
-        except:
-            os.mkdir(dirname)
-
-    # files names without path
-    filesonly = []
-    for dstr in darksfiles:
-        strnew = dstr.split("/")[-1]
-        filesonly.append(strnew)
-
-    # move corrtags into folders
-    for i in np.arange(len(darksfiles)):
-        if seg[i] == 'FUVA':
-            dirname = path + str('a_') + str(hva[i]) + str('/')
-        if seg[i] == 'FUVB':
-            dirname = path + str('b_') + str(hvb[i]) + str('/')
-        # move file in the folder
-        shutil.move(darksfiles[i], dirname + filesonly[i])
 
