@@ -39,7 +39,7 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., che
         x1=1200. #1315.   #more?
         x2=max(wave)      #2400.   #approx/
     elif segm == 'FUVB':
-        x1=50.
+        x1=900. ##50.
         x2=max(wave) #1000.
 
     ex_region = {}
@@ -56,13 +56,15 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., che
         plt.plot([x1,x2,x2,x1,x1],[y1,y1,y2,y2,y1],'b',linewidth=3.3)
         # Axes
         plt.xlim(x1-10,x2+10)
+        if segm == 'FUVB':
+            plt.xlim(50.,x2+10)
         plt.ylim(200., 800.)
         plt.show()
 
     # Return
     return ex_region
 
-def coadd_exposures(x1d_files, segm, outfile, bin=None):
+def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
     """
     Parameters
     ----------
@@ -124,7 +126,11 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None):
     # CALIBRATION
     wave_calib, calib = [], []
     for xtbl in xtbls:
-        gddq = (xtbl['DQ'] > 0) & (xtbl['FLUX'] > 0)
+        gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)  ## not dq > 0
+        ### checkdq0
+        #if checkdq0 == True:
+        #    gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)
+
         # Append
         wave_calib.append(xtbl['WAVELENGTH'][gddq].data.flatten())
         calib.append( (xtbl['NET'][gddq] / xtbl['FLUX'][gddq]).data)

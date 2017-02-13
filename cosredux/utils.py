@@ -86,7 +86,7 @@ def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=F
         thdu = fits.table_to_hdu(tbl)
         thdu.header = hdu[1].header
         thdulist = fits.HDUList([phdu,thdu])
-        thdulist.writeto(outfil, clobber=clobber)
+        thdulist.writeto(outfil, overwrite=clobber)
 
     # Return
     return tbl
@@ -154,7 +154,7 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
     # Write  
     thdu = fits.table_to_hdu(lp2)
     thdulist = fits.HDUList([hdu0,thdu])
-    thdulist.writeto(LP2_1dx_file, clobber=True)
+    thdulist.writeto(LP2_1dx_file, overwrite=True)
     # Return
     return
 
@@ -256,7 +256,7 @@ def add_sun_target_columns(corrtag_files_n, clobber=True):
     orig_cols = data.columns
     new_cols = fits.ColDefs(cols)
     hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
-    hdu.writeto(outfile, clobber=clobber)
+    hdu.writeto(outfile, overwrite=clobber)
     ##hdu.close()
 '''
 

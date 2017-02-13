@@ -40,8 +40,8 @@ def crude_histogram(yfull, ymin=300, ymax=700, ytl=550, pk_window=4.5, verbose=F
     # array with densities: yd; nd=N_el of yd
     # assume (for now): 300-520
 
-    ymin=300 #min(ya) #300
-    ymax=700 #550 #max(ya) #550
+    #ymin=300 #min(ya) #300
+    #ymax=700 #550 #max(ya) #550
     nh=ymax-ymin    # bins of width = 1
 
     # Generate histogram
@@ -105,7 +105,7 @@ def refine_peak(yfull, y_guess, pk_window=5., per_lim=(0.25,0.75)):
 
 
 
-def show_traces(wave, yfull, obj_y, arc_y):
+def show_traces(wave, yfull, obj_y, arc_y, segm):
     """
     Parameters
     ----------
@@ -113,6 +113,7 @@ def show_traces(wave, yfull, obj_y, arc_y):
     yfull
     obj_y
     arc_y
+    segm
 
     Returns
     -------
@@ -124,6 +125,8 @@ def show_traces(wave, yfull, obj_y, arc_y):
     ax = plt.gca()   # set axis
     ax.scatter(wave,yfull,s=1)
     wvmin = np.maximum(np.min(wave), 1100)
+    if segm == 'FUVB':
+        wvmin = np.min(wave)
     wvmax = np.max(wave)
     ax.plot([wvmin, wvmax],[obj_y,obj_y], color='blue')
     ax.plot([wvmin,wvmax],[arc_y,arc_y], color='red')
@@ -132,13 +135,13 @@ def show_traces(wave, yfull, obj_y, arc_y):
     ax.set_xlim(wvmin, wvmax)
     # Y range
     gdp = (wave > wvmin) & (wave < wvmax)
+    if segm == 'FUVB':
+        gdp = (wave > 200) & (wave < wvmax)
     ymin = np.min(yfull[gdp])
     ymax = np.max(yfull[gdp])
     ax.set_ylim(ymin, ymax)
     plt.show()
 
-
-#------------------------------------------------------------------------------------------------------
 
 
 def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
@@ -174,7 +177,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     if segment == 'FUVA':
         ymin, ymax, ytl = 300, 700, 550
     elif segment == 'FUVB':
-        ymin, ymax, ytl = 360, 760, 610
+        ymin, ymax, ytl = 360, 760, 550 #610
     else:
         raise IOError("Not ready for this segment")
     # Prepare to modify table
@@ -188,7 +191,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     yfull = data['YFULL']
     obj_y, arc_y = crude_histogram(yfull, ymin=ymin, ymax=ymax, ytl=ytl)
     if show:
-        show_traces(wave, yfull, obj_y, arc_y)
+        show_traces(wave, yfull, obj_y, arc_y, segment)
     # Update trace value
     if calcos_version == 'v2':
         filecal = calib_path+'x6q17586l_1dx.fits'  # WHEN RUNNING calcos 2
@@ -204,3 +207,23 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     cr_io.write_traces(obj_y, arc_y, outfile)
 
     return obj_y, arc_y
+
+
+def traceshist(file_tr,traces_n,ymin=300,ymax=700):
+    from matplotlib import pyplot as plt
+
+    data = Table.read(file_tr)
+    yfull = data['YFULL']
+    nh=ymax-ymin    # bins of width = 1
+
+    # Generate histogram
+    ycen=np.arange(nh)+ymin+0.5
+    yedges=np.arange(nh+1)+ymin
+    yhist, edges = np.histogram(yfull, bins=yedges)
+
+    plt.plot(ycen,yhist)
+    plt.plot([traces_n[0],traces_n[0]],[0,max(yhist)],'r')
+    plt.plot([traces_n[1],traces_n[1]],[0,max(yhist)],'b')
+    plt.show()
+
+

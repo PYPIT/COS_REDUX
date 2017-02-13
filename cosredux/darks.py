@@ -43,7 +43,7 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
         x1=1200. #1315.   #more?
         x2=max(wave)      #2400.   #approx/
     elif segm == 'FUVB':
-        x1=50.
+        x1=900. ##50.
         x2=max(wave) #1000.
 
     bg_region['lower'] = (x1,x2, obj_tr-apert+low_yoff, obj_tr-apert-ywidth+low_yoff)
@@ -64,6 +64,8 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
                 continue
             plt.plot([x1,x2,x2,x1,x1],[y1,y1,y2,y2,y1],'r',linewidth=3.3)
         plt.xlim(x1-10,x2+10)
+        if segm == 'FUVB':
+            plt.xlim(50.,x2+10)
         plt.ylim(200., 800.)
         plt.show()
 
@@ -72,7 +74,7 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
 
 
 
-def get_pha_values_science(region, corrtagfile, background=True):
+def get_pha_values_science(region, corrtagfile, segm, background=True):
     """ Grab the PHA values in the input region
     Parameters
     ----------
@@ -87,6 +89,8 @@ def get_pha_values_science(region, corrtagfile, background=True):
     """
     if background:
         reg_keys = ['lower', 'upper']
+        if segm == 'FUVB':
+            reg_keys = ['lower']
     else:
         reg_keys = ['extraction']
     # Read
@@ -106,12 +110,22 @@ def get_pha_values_science(region, corrtagfile, background=True):
         except KeyError:
             print("No region={:s} provided.  Skipping it".format(key))
             continue
+        if (y1 > y2):
+            yn=y1
+            y1=y2
+            y2=yn
+        if (x1 > x2):
+            xn=x1
+            x1=x2
+            x2=xn
         iphas = (wave >= x1) & (wave <= x2) & (dq == 0) & (yfull > y1) & (yfull < y2)
         all_phas.append(pha[iphas])
         all_xdopp.append(xdopp[iphas])
     # Concatenate
     all_phas = np.concatenate(all_phas)
     all_xdopp = np.concatenate(all_xdopp)
+    ##import pdb as pdb
+    ##pdb.set_trace()
     xdopp_min, xdopp_max = np.min(all_xdopp), np.max(all_xdopp)
 
     # Return
@@ -147,6 +161,14 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
             continue
         # Over-ride with xdopp
         x1, x2 = xdopp_mnx
+        if (y1 > y2):
+            yn=y1
+            y1=y2
+            y2=yn
+        if (x1 > x2):
+            xn=x1
+            x1=x2
+            x2=xn
         iphas = (xdopp >= x1) & (xdopp <= x2) & (dq == 0) & (yfull > y1) & (yfull < y2)
         all_phas.append(pha[iphas])
     # Concatenate
@@ -250,7 +272,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
             print("Working on exposure: {:s}".format(exposure))
         # Paths
         # PHA values in science region + xdopp values
-        pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure)
+        pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure, segm)
         # Find list of darks
         new_dark_path = dark_path+'_{:d}'.format(hvl[ss])+'/'
         dark_list = glob.glob(new_dark_path+'/*corrtag*')
@@ -261,6 +283,8 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
         for darkfile in dark_list:
             # PHAS
             drk_phas = get_pha_values_dark(bg_region, darkfile, (xdopp_min,xdopp_max))
+            ##import  pdb as pdb
+            ##pdb.set_trace()
             # KS
             if perform_kstest(pha_values, drk_phas):
                 gd_darks.append(darkfile)
