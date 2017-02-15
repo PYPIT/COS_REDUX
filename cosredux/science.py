@@ -15,7 +15,7 @@ from astropy.io import fits
 from xastropy.xutils import xdebug as xdb
 
 
-def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., check=False):
+def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., offs1=0., offs2=0., check=False):
     """
     Parameters
     ----------
@@ -43,7 +43,8 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., che
         x2=max(wave) #1000.
 
     ex_region = {}
-    ex_region['extraction'] = [x1,x2, obj_tr-apert, obj_tr+apert]
+    #ex_region['extraction'] = [x1,x2, obj_tr-apert, obj_tr+apert]
+    ex_region['extraction'] = [x1, x2, obj_tr - apert+offs1, obj_tr + apert+offs2]
 
     # Write and Return
     #outfile = coadd_corrtag_woPHA_file.replace('.fits', '_exregion.json')
@@ -214,3 +215,14 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
     # Write
     coadd.write(outfile, overwrite=True)
     print("Wrote {:s}".format(outfile))
+
+
+def combinespectfiles(spfile_a,spfile_b,file_ab):
+    from linetools.spectra import io as tio
+    from linetools.spectra import utils as spltu
+    file_a = tio.readspec(spfile_a)
+    file_b = tio.readspec(spfile_b)
+    spliced_sp=spltu.splice_two(file_b,file_a, chk_units=False)
+    spliced_sp.write(file_ab)
+
+

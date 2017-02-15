@@ -209,7 +209,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     return obj_y, arc_y
 
 
-def traceshist(file_tr,traces_n,ymin=300,ymax=700):
+def traceshist(file_tr,traces_n,ymin=300,ymax=700, offs1ob = 0., offs1lm = 0., offs2ob = 0., offs2lm = 0.):
     from matplotlib import pyplot as plt
 
     data = Table.read(file_tr)
@@ -224,6 +224,10 @@ def traceshist(file_tr,traces_n,ymin=300,ymax=700):
     plt.plot(ycen,yhist)
     plt.plot([traces_n[0],traces_n[0]],[0,max(yhist)],'r')
     plt.plot([traces_n[1],traces_n[1]],[0,max(yhist)],'b')
+    plt.plot([traces_n[0]+offs1ob-25,traces_n[0]+offs1ob-25],[0,max(yhist)],'r--')
+    #plt.plot([traces_n[1]+offs1lm-25,traces_n[1]+offs1lm-25],[0,max(yhist)],'b--')
+    plt.plot([traces_n[0]+offs2ob+25,traces_n[0]+offs2ob+25],[0,max(yhist)],'r--')
+    #plt.plot([traces_n[1]+offs2lm+25,traces_n[1]+offs2lm+25],[0,max(yhist)],'b--')
     plt.show()
 
 

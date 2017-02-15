@@ -177,7 +177,7 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
     # Return
     return all_phas
 
-def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_mnx, apert=25., plot=False,
+def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_mnx, apert=25., offs1=0., offs2=0., plot=False,
                           npix=16385):
 
     # Read coadded dark
@@ -197,7 +197,7 @@ def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_m
         raise IOError("Bad segm input")
 
     # Extract
-    in_extraction = (dq == 0) & (abs(yfull-obj_tr) <= apert) & (pha >= pha_mnx[0]) & (pha <= pha_mnx[1])
+    in_extraction = (dq == 0) & (yfull <= (obj_tr + apert +offs2)) & (yfull >= (obj_tr - apert +offs1)) & (pha >= pha_mnx[0]) & (pha <= pha_mnx[1])
     pha_ex = pha[in_extraction]
     xfull_ex = xfull[in_extraction]
 
@@ -236,7 +236,7 @@ def perform_kstest(sci_phas, dark_phas, criterion=0.1):
 
 
 def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4, show_spec=False,
-                      N_smooth=500, verbose=True):
+                      N_smooth=500, verbose=True, offs1=0.,offs2=0.):
     """
     Parameters
     ----------
@@ -309,7 +309,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
             print("Will use scale factor = {:g}".format(scale_sci_drk))
 
         # Extract
-        spec, pha_ex = extract_dark_spectrum(dark_coadd_file, exposure, obj_tr, segm, defaults['pha_mnx'], plot=show_spec)
+        spec, pha_ex = extract_dark_spectrum(dark_coadd_file, exposure, obj_tr, segm, defaults['pha_mnx'], plot=show_spec, offs1 = offs1, offs2 = offs2)
         if verbose:
             print("Extracting..")
 
