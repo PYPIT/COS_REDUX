@@ -40,11 +40,11 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
     # Set
     bg_region = {}
     if segm == 'FUVA':
-        x1=1200. #1315.   #more?
-        x2=max(wave)      #2400.   #approx/
+        x1=1200.
+        x2=max(wave)
     elif segm == 'FUVB':
-        x1=900. ##50.
-        x2=max(wave) #1000.
+        x1=900.
+        x2=max(wave)
 
     bg_region['lower'] = (x1,x2, obj_tr-apert+low_yoff, obj_tr-apert-ywidth+low_yoff)
     if segm == 'FUVA':
@@ -66,7 +66,7 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
         plt.xlim(x1-10,x2+10)
         if segm == 'FUVB':
             plt.xlim(50.,x2+10)
-        plt.ylim(200., 800.)
+        plt.ylim(min(yfull[wave > x1]),max(yfull[wave > x1]))
         plt.show()
 
     # Return
@@ -124,8 +124,6 @@ def get_pha_values_science(region, corrtagfile, segm, background=True):
     # Concatenate
     all_phas = np.concatenate(all_phas)
     all_xdopp = np.concatenate(all_xdopp)
-    ##import pdb as pdb
-    ##pdb.set_trace()
     xdopp_min, xdopp_max = np.min(all_xdopp), np.max(all_xdopp)
 
     # Return
@@ -447,7 +445,7 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
     for ifile in darkfiles: # in np.arange(n):
         hdu = fits.open(ifile)
         head1 = hdu[1].header
-        ###d dts[i]=head1['EXPTIME']  # all are 1330
+        # dts[i]=head1['EXPTIME']  # all are 1330
         # Query on HVL
         ihva, ihvb = head1['HVLEVELA'], head1['HVLEVELB']
         if segm == 'a':
@@ -459,9 +457,7 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
         # Query on DATE
         itime = head1['DATE-OBS']
         dd1 = np.datetime64(itime) - np.datetime64(ftime)
-        #dd = int(str.split(str(dd1))[0])  ## dd[i]
         if (np.abs(dd1) < npdays):  ## dd[i]
-            #print(dd1)
             dlist.append(ifile)
 
     # new array with darks

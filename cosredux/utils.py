@@ -92,7 +92,7 @@ def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=F
     return tbl
 
 
-def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=True):
+def modify_LP2_1dx_calib(calib_path, LP3_1dx, OPT_ELEM='G140L', CENWAVE=1280, verbose=True):
     """  Modify WCA and PSA definitions in the 1dx calibration file
     of LP2 according to the values in the file for LP3
     Only necessary for CALCOS v2
@@ -108,7 +108,7 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
     """
     lp3_dict = {}
     # Read LP3 file
-    LP3_1dx_file = calib_path+'/z2d19237l_1dx.fits'
+    LP3_1dx_file = calib_path+LP3_1dx  ##'/z2d19237l_1dx.fits'
     lp3 = Table.read(LP3_1dx_file)
     for segment in ['FUVA', 'FUVB']:
         lp3_dict[segment] = {}
@@ -181,6 +181,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
 
     tbllist = []
     head0 = None
+    fileslist = infiles[0]
     for ifile in infiles:
         # Read
         hdu = fits.open(ifile)
@@ -188,7 +189,9 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
         if head0 is None:
             head0 = hdu[0].header
         else:
-            pass # Maybe we should add HISTORY and COMMENT lines to header
+            pass # Maybe we should add HISTORY and COMMENT lines to header - added below
+        if (ifile != infiles[0]):
+            fileslist += ', '+ifile
 
         tbllist.append(tbl1)
         hdu.close()
@@ -200,6 +203,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     if outfile is not None:
         phdu = fits.PrimaryHDU()
         phdu.header = head0
+        phdu.header['history'] = 'Combined fits files '+fileslist
         thdu = fits.table_to_hdu(tbltot)
         thdulist = fits.HDUList([phdu, thdu])
         thdulist.writeto(outfile, overwrite=clobber)
@@ -209,18 +213,6 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     return tbltot
 
 
-###n ----------------------------------------------------------------------------------------------------
-
-
-def find_fcc(calibfld):
-    fcd = calibfld + 'x6q17586l_1dx.fits'
-    fccs = glob.glob(calibfld + '*_1dx.fits')
-    if len(fccs) == 2:
-        if fccs[0] != fcd:
-            fcc = fccs[0]
-        else:
-            fcc = fccs[1]
-    return fcc
 
 '''
 

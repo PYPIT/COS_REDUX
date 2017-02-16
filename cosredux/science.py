@@ -36,11 +36,11 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., off
     wave = data['WAVELENGTH'].data
     # Set
     if segm == 'FUVA':
-        x1=1200. #1315.   #more?
-        x2=max(wave)      #2400.   #approx/
+        x1=1200.
+        x2=max(wave)
     elif segm == 'FUVB':
-        x1=900. ##50.
-        x2=max(wave) #1000.
+        x1=900.
+        x2=max(wave)
 
     ex_region = {}
     #ex_region['extraction'] = [x1,x2, obj_tr-apert, obj_tr+apert]
@@ -59,7 +59,7 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., off
         plt.xlim(x1-10,x2+10)
         if segm == 'FUVB':
             plt.xlim(50.,x2+10)
-        plt.ylim(200., 800.)
+        plt.ylim(min(yfull[wave > x1]),max(yfull[wave > x1]))
         plt.show()
 
     # Return
@@ -127,10 +127,7 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
     # CALIBRATION
     wave_calib, calib = [], []
     for xtbl in xtbls:
-        gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)  ## not dq > 0
-        ### checkdq0
-        #if checkdq0 == True:
-        #    gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)
+        gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)
 
         # Append
         wave_calib.append(xtbl['WAVELENGTH'][gddq].data.flatten())
@@ -217,12 +214,12 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
     print("Wrote {:s}".format(outfile))
 
 
-def combinespectfiles(spfile_a,spfile_b,file_ab):
+def combinespectfiles(spfile_a, spfile_b, file_ab):
     from linetools.spectra import io as tio
     from linetools.spectra import utils as spltu
     file_a = tio.readspec(spfile_a)
     file_b = tio.readspec(spfile_b)
-    spliced_sp=spltu.splice_two(file_b,file_a, chk_units=False)
+    spliced_sp=spltu.splice_two(file_b, file_a, chk_units=False)
     spliced_sp.write(file_ab)
 
 

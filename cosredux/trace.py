@@ -40,8 +40,7 @@ def crude_histogram(yfull, ymin=300, ymax=700, ytl=550, pk_window=4.5, verbose=F
     # array with densities: yd; nd=N_el of yd
     # assume (for now): 300-520
 
-    #ymin=300 #min(ya) #300
-    #ymax=700 #550 #max(ya) #550
+
     nh=ymax-ymin    # bins of width = 1
 
     # Generate histogram
@@ -105,7 +104,7 @@ def refine_peak(yfull, y_guess, pk_window=5., per_lim=(0.25,0.75)):
 
 
 
-def show_traces(wave, yfull, obj_y, arc_y, segm):
+def show_traces(wave, yfull, obj_y, arc_y, segm, plottype='all', outfilpl=None):
     """
     Parameters
     ----------
@@ -122,14 +121,19 @@ def show_traces(wave, yfull, obj_y, arc_y, segm):
     from matplotlib import pyplot as plt
 
     plt.clf()   # clears a plot
+    if plottype == 'all':
+        plt.figure(figsize=(15,15))
+    elif plottype == 'obj':
+        plt.figure(figsize=(15, 4))
+    elif plottype == 'objb':
+        plt.figure(figsize=(8,4))
     ax = plt.gca()   # set axis
     ax.scatter(wave,yfull,s=1)
-    wvmin = np.maximum(np.min(wave), 1100)
+    wvmin = np.maximum(np.min(wave), 1200)
     if segm == 'FUVB':
         wvmin = np.min(wave)
     wvmax = np.max(wave)
-    ax.plot([wvmin, wvmax],[obj_y,obj_y], color='blue')
-    ax.plot([wvmin,wvmax],[arc_y,arc_y], color='red')
+
     ax.set_xlabel('Wavelength')
     ax.set_ylabel('YFULL')
     ax.set_xlim(wvmin, wvmax)
@@ -139,13 +143,27 @@ def show_traces(wave, yfull, obj_y, arc_y, segm):
         gdp = (wave > 200) & (wave < wvmax)
     ymin = np.min(yfull[gdp])
     ymax = np.max(yfull[gdp])
-    ax.set_ylim(ymin, ymax)
+    if plottype == 'all':
+        ax.set_ylim(ymin, ymax)
+        ax.plot([wvmin, wvmax], [obj_y, obj_y], color='blue')
+        ax.plot([wvmin, wvmax], [arc_y, arc_y], color='red')
+    elif plottype == 'obj':
+        ax.set_ylim(obj_y - 40, obj_y + 40)
+        if segm == 'FUVB':
+            ax.set_xlim(0, np.max(wave))
+            ax.set_ylim(obj_y - 40 -10, obj_y + 40 -10)
+    elif plottype == 'objb':
+        ax.set_ylim(obj_y - 40 - 10, obj_y + 40 - 10)
+        ax.set_xlim(900, np.max(wave))
+
+    if outfilpl is not None:
+        plt.savefig(outfilpl)
     plt.show()
 
 
 
 def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
-           outfil=None, clobber=False, show=False, calcos_version='v2'):
+           outfil=None, clobber=False, show=False, calcos_version='v2', plottype='all', outfilpl=None):
     """
     Parameters
     ----------
@@ -177,7 +195,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     if segment == 'FUVA':
         ymin, ymax, ytl = 300, 700, 550
     elif segment == 'FUVB':
-        ymin, ymax, ytl = 360, 760, 550 #610
+        ymin, ymax, ytl = 360, 760, 550
     else:
         raise IOError("Not ready for this segment")
     # Prepare to modify table
@@ -191,7 +209,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     yfull = data['YFULL']
     obj_y, arc_y = crude_histogram(yfull, ymin=ymin, ymax=ymax, ytl=ytl)
     if show:
-        show_traces(wave, yfull, obj_y, arc_y, segment)
+        show_traces(wave, yfull, obj_y, arc_y, segment, plottype=plottype, outfilpl=outfilpl)
     # Update trace value
     if calcos_version == 'v2':
         filecal = calib_path+'x6q17586l_1dx.fits'  # WHEN RUNNING calcos 2
@@ -209,7 +227,7 @@ def traces(filename, calib_path, segment, row_dict=None, LP='LP3',
     return obj_y, arc_y
 
 
-def traceshist(file_tr,traces_n,ymin=300,ymax=700, offs1ob = 0., offs1lm = 0., offs2ob = 0., offs2lm = 0.):
+def traceshist(file_tr,traces_n,ymin=300,ymax=700, offs1ob = 0., offs2ob = 0.):
     from matplotlib import pyplot as plt
 
     data = Table.read(file_tr)
@@ -225,9 +243,7 @@ def traceshist(file_tr,traces_n,ymin=300,ymax=700, offs1ob = 0., offs1lm = 0., o
     plt.plot([traces_n[0],traces_n[0]],[0,max(yhist)],'r')
     plt.plot([traces_n[1],traces_n[1]],[0,max(yhist)],'b')
     plt.plot([traces_n[0]+offs1ob-25,traces_n[0]+offs1ob-25],[0,max(yhist)],'r--')
-    #plt.plot([traces_n[1]+offs1lm-25,traces_n[1]+offs1lm-25],[0,max(yhist)],'b--')
     plt.plot([traces_n[0]+offs2ob+25,traces_n[0]+offs2ob+25],[0,max(yhist)],'r--')
-    #plt.plot([traces_n[1]+offs2lm+25,traces_n[1]+offs2lm+25],[0,max(yhist)],'b--')
     plt.show()
 
 
