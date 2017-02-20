@@ -16,15 +16,23 @@ from xastropy.xutils import xdebug as xdb
 
 
 def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., offs1=0., offs2=0., check=False):
-    """
+    """ Defines extraction region
     Parameters
     ----------
-    obj_tr
-    segm
-    apert
-    corrtag_file : str
+    obj_tr : float, int
+      object trace
+    segm : str
+      segment
+    apert : float, int, optional
+    coadd_corrtag_woPHA_file : str
       For wavelength info
-    ywidth : float, optional
+    offs1 : float, int, optional
+    offs2 : float, int, optional
+      left and right offsets from the aperture
+       could be used for FUVB
+    check : bool, optional
+      show extraction region
+    #ywidth : float, optional
 
     Returns
     -------
@@ -43,7 +51,6 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., off
         x2=max(wave)
 
     ex_region = {}
-    #ex_region['extraction'] = [x1,x2, obj_tr-apert, obj_tr+apert]
     ex_region['extraction'] = [x1, x2, obj_tr - apert+offs1, obj_tr + apert+offs2]
 
     # Write and Return
@@ -65,13 +72,16 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., off
     # Return
     return ex_region
 
-def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
-    """
+def coadd_exposures(x1d_files, segm, outfile, bin=None):
+    """ Coadd exposures (step 9 of the procedure)
     Parameters
     ----------
-    x1d_files
-    segm
-    outfile
+    x1d_files : list of str
+    segm : str
+    outfile : str
+      file with coadded exposures
+    bin : 2, 3, None
+      bin the output spectrum
 
     Returns
     -------
@@ -215,11 +225,26 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None): #, checkdq0=False):
 
 
 def combinespectfiles(spfile_a, spfile_b, file_ab):
+    """ Coadd two spectra, and write output in a file
+
+    Parameters
+    ----------
+    spfile_a : str
+    spfile_b : str
+       files with spectra
+    file_ab : str
+       output file with combined spectra
+
+    Returns
+    -------
+
+    """
     from linetools.spectra import io as tio
     from linetools.spectra import utils as spltu
     file_a = tio.readspec(spfile_a)
     file_b = tio.readspec(spfile_b)
     spliced_sp=spltu.splice_two(file_b, file_a, chk_units=False)
     spliced_sp.write(file_ab)
+    print("Wrote {:s}".format(file_ab))
 
 

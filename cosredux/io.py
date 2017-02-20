@@ -29,10 +29,10 @@ def write_bg_regions(bg_region, outfile):
 
 
 def read_traces(coadd_file):
-    """
+    """ Read traces from a .json file with the same name as a .fits file (coadd_file)
     Parameters
     ----------
-    coadd_file
+    coadd_file : str
 
     Returns
     -------
