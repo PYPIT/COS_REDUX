@@ -245,6 +245,6 @@ def combinespectfiles(spfile_a, spfile_b, file_ab):
     file_b = tio.readspec(spfile_b)
     spliced_sp=spltu.splice_two(file_b, file_a, chk_units=False)
     spliced_sp.write(file_ab)
-    print("Wrote {:s}".format(file_ab))
+    #print("Wrote {:s}".format(file_ab))
 
 
