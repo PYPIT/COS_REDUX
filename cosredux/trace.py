@@ -81,6 +81,7 @@ def refine_peak(yfull, y_guess, pk_window=5., per_lim=(0.25,0.75)):
     Returns
     -------
     pk : float
+      refined peak value
 
     """
     # Cut to y values near the peak

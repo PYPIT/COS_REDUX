@@ -231,9 +231,9 @@ def combinespectfiles(spfile_a, spfile_b, file_ab):
     ----------
     spfile_a : str
     spfile_b : str
-       files with spectra
+       .fits files with spectra
     file_ab : str
-       output file with combined spectra
+       output .fits file with combined spectra
 
     Returns
     -------

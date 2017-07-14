@@ -535,7 +535,6 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
     for ifile in darkfiles:
         hdu = fits.open(ifile)
         head1 = hdu[1].header
-        # dts[i]=head1['EXPTIME']  # all are 1330
         # Query on HVL
         ihva, ihvb = head1['HVLEVELA'], head1['HVLEVELB']
         if segm == 'a':
