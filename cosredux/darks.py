@@ -19,19 +19,28 @@ from cosredux import utils as cr_utils
 
 def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywidth=50., low_yoff=-10.,
                           check=False):
-    """
+    """ Defines background region (2 regions for FUVA, 1 region for FUVB)
     Parameters
     ----------
-    obj_tr
-    segm
-    apert
-    corrtag_file : str
+    obj_tr : float, int
+      object trace
+    segm : str
+      segment
+    coadd_corrtag_woPHA_file : str
       For wavelength info
+    apert: float, optional
+      aperture
     ywidth : float, optional
+      width of the region
+    low_yoff: float, int, optional
+      offset from the aperture for the lower region
+    check : bool, optional
+      plot region
 
     Returns
     -------
     bg_region : dict
+       dict with background region(s)
 
     """
     # Load
@@ -40,11 +49,11 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
     # Set
     bg_region = {}
     if segm == 'FUVA':
-        x1=1200. #1315.   #more?
-        x2=max(wave)      #2400.   #approx/
+        x1=1200.
+        x2=max(wave)
     elif segm == 'FUVB':
-        x1=50.
-        x2=max(wave) #1000.
+        x1=900.
+        x2=max(wave)
 
     bg_region['lower'] = (x1,x2, obj_tr-apert+low_yoff, obj_tr-apert-ywidth+low_yoff)
     if segm == 'FUVA':
@@ -64,7 +73,9 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
                 continue
             plt.plot([x1,x2,x2,x1,x1],[y1,y1,y2,y2,y1],'r',linewidth=3.3)
         plt.xlim(x1-10,x2+10)
-        plt.ylim(200., 800.)
+        if segm == 'FUVB':
+            plt.xlim(50.,x2+10)
+        plt.ylim(min(yfull[wave > x1]),max(yfull[wave > x1]))
         plt.show()
 
     # Return
@@ -72,21 +83,30 @@ def set_background_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., ywi
 
 
 
-def get_pha_values_science(region, corrtagfile, background=True):
+def get_pha_values_science(region, corrtagfile, segm, background=True):
     """ Grab the PHA values in the input region
     Parameters
     ----------
-    corrfile
+    region : dict
+      background or extraction region(s)
+    corrtagfile: str
+    segm: str
+    background : bool, optional
+      is it background region
 
     Returns
     -------
-    phas : ndarray
+    all_phas : ndarray
+       PHA values in the region
     xdopp_min : float
     xdopp_max : float
+      min and max values for XDOPP in the region(s)
 
     """
     if background:
         reg_keys = ['lower', 'upper']
+        if segm == 'FUVB':
+            reg_keys = ['lower']
     else:
         reg_keys = ['extraction']
     # Read
@@ -106,6 +126,14 @@ def get_pha_values_science(region, corrtagfile, background=True):
         except KeyError:
             print("No region={:s} provided.  Skipping it".format(key))
             continue
+        if (y1 > y2):
+            yn=y1
+            y1=y2
+            y2=yn
+        if (x1 > x2):
+            xn=x1
+            x1=x2
+            x2=xn
         iphas = (wave >= x1) & (wave <= x2) & (dq == 0) & (yfull > y1) & (yfull < y2)
         all_phas.append(pha[iphas])
         all_xdopp.append(xdopp[iphas])
@@ -122,13 +150,19 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
     """ Grab the PHA values in the input region
     Parameters
     ----------
-    corrfile
+    bg_region : dict
+       background region(s)
+    dark_corrtag : str
+       dark file
+    xdopp_mnx : tuple
+       min and max values for XDOPP in the region(s)
 
     Returns
     -------
-    phas : ndarray
-    xdopp_min : float
-    xdopp_max : float
+    all_phas : ndarray
+       PHA values in the region
+    # xdopp_min : float
+    # xdopp_max : float
 
     """
     # Read
@@ -147,6 +181,14 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
             continue
         # Over-ride with xdopp
         x1, x2 = xdopp_mnx
+        if (y1 > y2):
+            yn=y1
+            y1=y2
+            y2=yn
+        if (x1 > x2):
+            xn=x1
+            x1=x2
+            x2=xn
         iphas = (xdopp >= x1) & (xdopp <= x2) & (dq == 0) & (yfull > y1) & (yfull < y2)
         all_phas.append(pha[iphas])
     # Concatenate
@@ -155,8 +197,40 @@ def get_pha_values_dark(bg_region, dark_corrtag, xdopp_mnx):
     # Return
     return all_phas
 
-def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_mnx, apert=25., plot=False,
+def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_mnx, apert=25., offs1=0., offs2=0., plot=False,
                           npix=16385):
+    """ Extracts dark spectrum for a (coadded) dark file.
+
+    Parameters
+    ----------
+    coadd_dark_file : str
+      coadded dark file
+    science_exp_file : str
+      science exposure file
+    obj_tr : float, int
+      object trace
+    segm: str
+      segment
+    pha_mnx: tuple
+      min and max PHA values
+    apert : float, int, optional
+      aperture
+    offs1 : float, int, optional
+    offs2 : float, int, optional
+      left and right offset from the aperture
+    plot: bool, optional
+    npix: int, optional
+      number of pixels for xfull
+
+    Returns
+    -------
+    hist : ndarray
+      spectrum
+    pha_ex : ndarray
+      PHA values in the extraction region
+
+    """
+
 
     # Read coadded dark
     dark_data = Table.read(coadd_dark_file)
@@ -175,7 +249,7 @@ def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_m
         raise IOError("Bad segm input")
 
     # Extract
-    in_extraction = (dq == 0) & (abs(yfull-obj_tr) <= apert) & (pha >= pha_mnx[0]) & (pha <= pha_mnx[1])
+    in_extraction = (dq == 0) & (yfull <= (obj_tr + apert +offs2)) & (yfull >= (obj_tr - apert +offs1)) & (pha >= pha_mnx[0]) & (pha <= pha_mnx[1])
     pha_ex = pha[in_extraction]
     xfull_ex = xfull[in_extraction]
 
@@ -193,15 +267,21 @@ def extract_dark_spectrum(coadd_dark_file, science_exp_file, obj_tr, segm, pha_m
     return hist, pha_ex
 
 def perform_kstest(sci_phas, dark_phas, criterion=0.1):
-    """
+    """ Compare the cumulative pulse height histogram of the science exposure to the
+    corresponding histograms of the dark exposures,
+    and check if they are similar to a Kolmogorov-Smirnov test with some criterion
+
     Parameters
     ----------
-    sci_phas
-    dark_phas
-    criterion
+    sci_phas : ndarray
+    dark_phas : ndarray
+       science and dark exposure PHAs
+    criterion : float, optional
+       for the KS test
 
     Returns
     -------
+    True / False
 
     """
     import scipy.stats as scc
@@ -214,19 +294,30 @@ def perform_kstest(sci_phas, dark_phas, criterion=0.1):
 
 
 def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4, show_spec=False,
-                      N_smooth=500, verbose=True):
-    """
+                      N_smooth=500, verbose=True, offs1=0.,offs2=0.):
+    """ For each exposure coaddes dark spectra which are similar to science spectrum,
+        and writes the spectrum in a file.
     Parameters
     ----------
     exposures : list
       List of exposures without PHA filtering
-    bg_region
-    obj_tr
-    segm
-    defaults
-    min_ndark
-    show_spec
-    N_smooth
+    bg_region : dict
+      background region
+    obj_tr : float, int
+      object trace
+    segm : str
+      segment
+    defaults : dict
+      default values (here used: min and max PHAs)
+    min_ndark : int, optional
+      minimum number of darks to coadd
+    show_spec : bool, optional
+    N_smooth : int, optional
+      smoothing
+    verbose : bool, optional
+    offs1 : float, int, optional
+    offs2 : float, int, optional
+      left and right offset from the aperture
 
     Returns
     -------
@@ -250,7 +341,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
             print("Working on exposure: {:s}".format(exposure))
         # Paths
         # PHA values in science region + xdopp values
-        pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure)
+        pha_values, xdopp_min, xdopp_max = get_pha_values_science(bg_region, exposure, segm)
         # Find list of darks
         new_dark_path = dark_path+'_{:d}'.format(hvl[ss])+'/'
         dark_list = glob.glob(new_dark_path+'/*corrtag*')
@@ -267,9 +358,25 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
             ndark = len(gd_darks)
         if ndark < min_ndark:
             print("Need more darks.  Probably can just change criterion")
-            return
-        else:
-            print("We have {:d} darks to use".format(ndark))
+            print("Changing criterion...")
+            gd_darks = []
+            pks_list = []
+            import scipy.stats as scc
+            for darkfile in dark_list:
+                drk_phas = get_pha_values_dark(bg_region, darkfile, (xdopp_min, xdopp_max))
+                Dstat, PK_S = scc.ks_2samp(pha_values, drk_phas)
+                pks_list.append(PK_S)
+            pks=np.asarray(pks_list)
+            newcrit=np.partition(pks,len(pks)-min_ndark-1)[len(pks)-min_ndark-1]
+            for i in np.arange(len(pks)):
+                if pks[i] >= newcrit:
+                    gd_darks.append(dark_list[i])
+            print("New criterion: ", newcrit)
+            ndark = len(gd_darks)
+            #            return
+        #else:
+        #    print("We have {:d} darks to use".format(ndark))
+        print("We have {:d} darks to use".format(ndark))
 
         # Coadd
         i0 = exposure.rfind('/')
@@ -285,7 +392,7 @@ def dark_to_exposures(exposures, bg_region, obj_tr, segm, defaults, min_ndark=4,
             print("Will use scale factor = {:g}".format(scale_sci_drk))
 
         # Extract
-        spec, pha_ex = extract_dark_spectrum(dark_coadd_file, exposure, obj_tr, segm, defaults['pha_mnx'], plot=show_spec)
+        spec, pha_ex = extract_dark_spectrum(dark_coadd_file, exposure, obj_tr, segm, defaults['pha_mnx'], plot=show_spec, offs1 = offs1, offs2 = offs2)
         if verbose:
             print("Extracting..")
 
@@ -309,6 +416,7 @@ def dark_calcos_script(dark_files, segm, science_folder):
     Parameters
     ----------
     dark_files : list
+    segm : str
     science_folder : str
       path to where science reduction is performed
     """
@@ -389,7 +497,9 @@ def separate_darks(darksfiles, path):
 '''
 
 def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
-    """
+    """  Finds darks taken within ndays around the date
+         of your science observations,
+         with the HVlevel = hvlvl
     Parameters
     ----------
     darksfld : str
@@ -399,7 +509,9 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
       Requires date information in the header
     segm : str
       COS segment -- 'a' or 'b'
-    ndays : int
+    hvlvl : int or str
+       HVlevel
+    ndays : int, optional
       Number of days to search within to match to darks
 
 
@@ -420,10 +532,9 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
     darkfiles = glob.glob(darksfld + '*' + segm + '.fits')
 
     dlist = []
-    for ifile in darkfiles: # in np.arange(n):
+    for ifile in darkfiles:
         hdu = fits.open(ifile)
         head1 = hdu[1].header
-        ###d dts[i]=head1['EXPTIME']  # all are 1330
         # Query on HVL
         ihva, ihvb = head1['HVLEVELA'], head1['HVLEVELB']
         if segm == 'a':
@@ -435,9 +546,7 @@ def find_darks(darksfld, scifile, segm, hvlvl, ndays=90):
         # Query on DATE
         itime = head1['DATE-OBS']
         dd1 = np.datetime64(itime) - np.datetime64(ftime)
-        #dd = int(str.split(str(dd1))[0])  ## dd[i]
-        if (np.abs(dd1) < npdays):  ## dd[i]
-            #print(dd1)
+        if (np.abs(dd1) < npdays):
             dlist.append(ifile)
 
     # new array with darks
@@ -449,15 +558,17 @@ def setup_for_calcos(darksfld, scifile, segm, **kwargs):
 
     Parameters
     ----------
-    darksfld
+    darksfld : str
+      path to darks
     scifile : str
       one corrtag file from a given visit
       includes path to the scifile
-    segm
-    ndays
+    segm : str
+    #ndays
 
     Returns
     -------
+    d_subf : str
 
     """
     from shutil import copyfile as shutilcp
@@ -507,7 +618,7 @@ def setup_for_calcos(darksfld, scifile, segm, **kwargs):
     clfile = rdxsci_path+d_subf+'/'+d_subf+'.cl'
     f = open(clfile, 'w')
     for ifile in new_darks:
-        f.write('calcos ' + ifile + '\n') #calcos [dark1]_rawtag_a.fits ...
+        f.write('calcos ' + ifile + '\n') # calcos [dark1]_rawtag_a.fits ...
     print("Wrote calcos script: {:s}".format(clfile))
 
     # Return sub-folder path

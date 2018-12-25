@@ -17,12 +17,13 @@ from xastropy.xutils import xdebug as xdb
 
 
 def modify_rawtag_for_calcos(path, verbose=False):
-    """ Open rawtag files, edit header
+    """ Open rawtag files, edit header for running Calcos 1st time on a dataset
     WARNING: Over writes the header of the previous file
 
     Parameters
     ----------
     path : str
+      path to files
 
     Returns
     -------
@@ -55,12 +56,15 @@ def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=F
 
     Parameters
     ----------
-    filename
+    filename : str
     column : str
     row_dict : dict
     value : float, str, int
+      new value
     outfil : str, optional
       If provided, generates a new file with the Table (and header)
+    clobber : bool, optional
+      overwrite?
 
     Returns
     -------
@@ -86,13 +90,13 @@ def modify_table_value(filename, column, row_dict, value, outfil=None, clobber=F
         thdu = fits.table_to_hdu(tbl)
         thdu.header = hdu[1].header
         thdulist = fits.HDUList([phdu,thdu])
-        thdulist.writeto(outfil, clobber=clobber)
+        thdulist.writeto(outfil, overwrite=clobber)
 
     # Return
     return tbl
 
 
-def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=True):
+def modify_LP2_1dx_calib(calib_path, LP3_1dx, OPT_ELEM='G140L', CENWAVE=1280, verbose=True):
     """  Modify WCA and PSA definitions in the 1dx calibration file
     of LP2 according to the values in the file for LP3
     Only necessary for CALCOS v2
@@ -101,6 +105,11 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
 
     Parameters
     ----------
+    calib_path : str
+    LP3_1dx : str
+    OPT_ELEM : str, optional (assumed: 'G140L')
+    CENWAVE : int ; optional (assumed 1280)
+
 
     Returns
     -------
@@ -108,7 +117,7 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
     """
     lp3_dict = {}
     # Read LP3 file
-    LP3_1dx_file = calib_path+'/z2d19237l_1dx.fits'
+    LP3_1dx_file = calib_path+LP3_1dx  ## e.g. 'z2d19237l_1dx.fits'
     lp3 = Table.read(LP3_1dx_file)
     for segment in ['FUVA', 'FUVB']:
         lp3_dict[segment] = {}
@@ -154,7 +163,7 @@ def modify_LP2_1dx_calib(calib_path, OPT_ELEM='G140L', CENWAVE=1280, verbose=Tru
     # Write  
     thdu = fits.table_to_hdu(lp2)
     thdulist = fits.HDUList([hdu0,thdu])
-    thdulist.writeto(LP2_1dx_file, clobber=True)
+    thdulist.writeto(LP2_1dx_file, overwrite=True)
     # Return
     return
 
@@ -165,15 +174,16 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     Parameters
     ----------
     infiles : list
+      list of files to coadd
     outfile : str, optional
       If given, generate a new FITS file
     clobber : bool, optional
-    add_sun_target_info : bool, optional
-      Should be True for a corrtag combine
+    #add_sun_target_info : bool, optional
+    #  Should be True for a corrtag combine
 
     Returns
     -------
-    tbltot - Table
+    tbltot : Table
       combined table
 
     """
@@ -181,6 +191,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
 
     tbllist = []
     head0 = None
+    fileslist = infiles[0]
     for ifile in infiles:
         # Read
         hdu = fits.open(ifile)
@@ -188,7 +199,9 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
         if head0 is None:
             head0 = hdu[0].header
         else:
-            pass # Maybe we should add HISTORY and COMMENT lines to header
+            pass
+        if (ifile != infiles[0]):
+            fileslist += ', '+ifile
 
         tbllist.append(tbl1)
         hdu.close()
@@ -200,6 +213,7 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     if outfile is not None:
         phdu = fits.PrimaryHDU()
         phdu.header = head0
+        phdu.header['history'] = 'Combined fits files '+fileslist   # Add  HISTORY lines to header
         thdu = fits.table_to_hdu(tbltot)
         thdulist = fits.HDUList([phdu, thdu])
         thdulist.writeto(outfile, overwrite=clobber)
@@ -209,18 +223,6 @@ def coadd_bintables(infiles, outfile=None, clobber=True):
     return tbltot
 
 
-###n ----------------------------------------------------------------------------------------------------
-
-
-def find_fcc(calibfld):
-    fcd = calibfld + 'x6q17586l_1dx.fits'
-    fccs = glob.glob(calibfld + '*_1dx.fits')
-    if len(fccs) == 2:
-        if fccs[0] != fcd:
-            fcc = fccs[0]
-        else:
-            fcc = fccs[1]
-    return fcc
 
 '''
 
@@ -256,7 +258,7 @@ def add_sun_target_columns(corrtag_files_n, clobber=True):
     orig_cols = data.columns
     new_cols = fits.ColDefs(cols)
     hdu = fits.BinTableHDU.from_columns(orig_cols + new_cols)
-    hdu.writeto(outfile, clobber=clobber)
+    hdu.writeto(outfile, overwrite=clobber)
     ##hdu.close()
 '''
 
@@ -289,15 +291,18 @@ def get_hvlevels(files):
 
 
 
-def change_pha(calibfld, low=2, up=15):
+def change_pha(calibfld, lowa=2, upa=15, lowb=2, upb=15):
     """ Modify PHA values in calibration PHA files
     Worseck recommends doing this file by file..
 
     Parameters
     ----------
-    calibfld
-    low : int, optional
-    up : int, optional
+    calibfld : str
+    lowa : int, optional
+    upa : int, optional
+    lowb : int, optional
+    upb : int, optional
+      lower and upper limits for PHA values in FUVA and FUVB
 
     Returns
     -------
@@ -308,14 +313,14 @@ def change_pha(calibfld, low=2, up=15):
         print("Updating PHA values in {:s}".format(phafile))
         with fits.open(phafile, 'update') as f:
             head1 = f[1].header
-            head1['PHALOWRA'] = low
-            head1['PHALOWRB'] = low
-            head1['PHAUPPRA'] = up
-            head1['PHAUPPRB'] = up
+            head1['PHALOWRA'] = lowa
+            head1['PHALOWRB'] = lowb
+            head1['PHAUPPRA'] = upa
+            head1['PHAUPPRB'] = upb
 
 
 def clean_for_calcos_phafiltering(redux_dir):
-    """ Remove files before running calcos
+    """ Remove files before running calcos 2nd time (with PHACORR = PERFORM)
     Push corrtag files to woPHA
 
     Parameters
@@ -343,7 +348,7 @@ def clean_for_calcos_phafiltering(redux_dir):
 
 
 def modify_phacorr(rawtag_path):
-    """
+    """   Change PHACORR = PERFORM
     Parameters
     ----------
     rawtag_path : str
@@ -369,7 +374,9 @@ def change_dq_wgt(x1d_folder, clobber=True):
     Parameters
     ----------
     x1d_folder : str
-    clobber
+       path to x1d files
+    clobber : bool, optional
+      overwrite
 
     Returns
     -------

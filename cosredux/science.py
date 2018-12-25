@@ -15,16 +15,24 @@ from astropy.io import fits
 from xastropy.xutils import xdebug as xdb
 
 
-def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., check=False):
-    """
+def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., offs1=0., offs2=0., check=False):
+    """ Defines extraction region
     Parameters
     ----------
-    obj_tr
-    segm
-    apert
-    corrtag_file : str
+    obj_tr : float, int
+      object trace
+    segm : str
+      segment
+    apert : float, int, optional
+    coadd_corrtag_woPHA_file : str
       For wavelength info
-    ywidth : float, optional
+    offs1 : float, int, optional
+    offs2 : float, int, optional
+      left and right offsets from the aperture
+       could be used for FUVB
+    check : bool, optional
+      show extraction region
+    #ywidth : float, optional
 
     Returns
     -------
@@ -36,14 +44,14 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., che
     wave = data['WAVELENGTH'].data
     # Set
     if segm == 'FUVA':
-        x1=1200. #1315.   #more?
-        x2=max(wave)      #2400.   #approx/
+        x1=1200.
+        x2=max(wave)
     elif segm == 'FUVB':
-        x1=50.
-        x2=max(wave) #1000.
+        x1=900.
+        x2=max(wave)
 
     ex_region = {}
-    ex_region['extraction'] = [x1,x2, obj_tr-apert, obj_tr+apert]
+    ex_region['extraction'] = [x1, x2, obj_tr - apert+offs1, obj_tr + apert+offs2]
 
     # Write and Return
     #outfile = coadd_corrtag_woPHA_file.replace('.fits', '_exregion.json')
@@ -56,19 +64,24 @@ def set_extraction_region(obj_tr, segm, coadd_corrtag_woPHA_file, apert=25., che
         plt.plot([x1,x2,x2,x1,x1],[y1,y1,y2,y2,y1],'b',linewidth=3.3)
         # Axes
         plt.xlim(x1-10,x2+10)
-        plt.ylim(200., 800.)
+        if segm == 'FUVB':
+            plt.xlim(50.,x2+10)
+        plt.ylim(min(yfull[wave > x1]),max(yfull[wave > x1]))
         plt.show()
 
     # Return
     return ex_region
 
 def coadd_exposures(x1d_files, segm, outfile, bin=None):
-    """
+    """ Coadd exposures (step 9 of the procedure)
     Parameters
     ----------
-    x1d_files
-    segm
-    outfile
+    x1d_files : list of str
+    segm : str
+    outfile : str
+      file with coadded exposures
+    bin : 2, 3, None
+      bin the output spectrum
 
     Returns
     -------
@@ -124,7 +137,8 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None):
     # CALIBRATION
     wave_calib, calib = [], []
     for xtbl in xtbls:
-        gddq = (xtbl['DQ'] > 0) & (xtbl['FLUX'] > 0)
+        gddq = (xtbl['DQ'] == 0) & (xtbl['FLUX'] > 0)
+
         # Append
         wave_calib.append(xtbl['WAVELENGTH'][gddq].data.flatten())
         calib.append( (xtbl['NET'][gddq] / xtbl['FLUX'][gddq]).data)
@@ -208,3 +222,30 @@ def coadd_exposures(x1d_files, segm, outfile, bin=None):
     # Write
     coadd.write(outfile, overwrite=True)
     print("Wrote {:s}".format(outfile))
+
+
+def combinespectfiles(spfile_a, spfile_b, file_ab):
+    """ Coadd two spectra, and write output in a file
+
+    Parameters
+    ----------
+    spfile_a : str
+    spfile_b : str
+       .fits files with spectra
+    file_ab : str
+       output .fits file with combined spectra
+
+    Returns
+    -------
+
+    """
+    from linetools.spectra import io as tio
+    from linetools.spectra import utils as spltu
+    file_a = tio.readspec(spfile_a)
+    file_b = tio.readspec(spfile_b)
+    spliced_sp=spltu.splice_two(file_b, file_a, chk_units=False)
+    spliced_sp.write(file_ab)
+    #print("Wrote {:s}".format(file_ab))
+
+
+ 
