@@ -514,3 +514,31 @@ def summfile(ifldpth,idx):
         fname = fname[0]
     return fname
 
+
+def getfiles(pths,endstr,verbose=True):
+    """ Get all files in paths pths, ending with endstr.
+
+    Parameters
+    ----------
+    pths: list of strings
+      Folders where are the data
+    endstr
+
+    Returns
+    --------
+    ff: array of strings
+       File names
+
+    """
+
+    ff = []
+    for ipth in pths:
+        ff22 = glob.glob(ipth+'/*'+endstr)
+        for iff22 in ff22:
+            ff.append(iff22)
+    ff = np.asarray(ff)
+    ff = np.sort(ff)
+    if verbose:
+        print('Number of files:',len(ff))
+
+    return ff
