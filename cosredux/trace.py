@@ -12,6 +12,8 @@ from scipy.optimize import curve_fit
 
 from xastropy.xutils import xdebug as xdb
 
+import pypeit.utils as pyutils
+
 from cosredux import utils
 from cosredux import io as cr_io
 
@@ -430,10 +432,12 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA', 'WCA']
-    if hd['DETECTOR'] == 'FUV':
+    elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA']
+    else:
+        raise IOError("Detector not well defined in ",fnamecorrs[0])
 
     # LP2_1dx_file: ypeaks, slopes, heights  (should be LP3, etc. This is just notation.)
     hdu = fits.open(LP2_1dx_file)
@@ -505,7 +509,7 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
         xfull1 = xfull[k]
         # fit
         if hd['DETECTOR'] == 'NUV':
-            x1, x0 = np.polyfit(xfull1, yfull1, 1)
+            x1, x0 = pyutils.robust_polyfit(xfull1, yfull1, 1)   #np.polyfit(xfull1, yfull1, 1)
             newslopes1.append(x1)
             # assuming that central point in the trace did not change, i.e.:
             #     newslopes1 * (np.max(xfull)+np.min(xfull))*0.5 + newypeaks1 = const
@@ -575,10 +579,12 @@ def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspec
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:]
         apertures = ['PSA', 'WCA']
-    if hd['DETECTOR'] == 'FUV':
+    elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:]
         apertures = ['PSA']
+    else:
+        raise IOError("Detector not well defined in ", fnamecorrs1[0])
     if verbose:
         print(LP2_1dx_file)
 
@@ -724,10 +730,11 @@ def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, d
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA', 'WCA']
-    if hd['DETECTOR'] == 'FUV':
+    elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA']
+    raise IOError("Detector not well defined in ", corrtag[0])
 
     # read ypeaks and slopes from a copy of the LP2_1dx_file
     hdu = fits.open(LP2_1dx_file)
@@ -829,10 +836,12 @@ def plothist(fldpth, corrtag, newypeaks=None, slopes=None, newheights=None, ihei
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA', 'WCA']
-    if hd['DETECTOR'] == 'FUV':
+    elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'  # '_copy1.fits'
         apertures = ['PSA']
+    else:
+        raise IOError("Detector not well defined in ", corrtag[0])
 
     if fitgauss:
         apertures = ['PSA']

@@ -467,43 +467,6 @@ def load_fnames(pth, lenname=7):
     return ff1, fldnames
 
 
-def findcorrtag(fldpth, verbose=True):
-    """ Find corrtag files for 4 different settings or cases:
-        G230L (3000), G230L (3360), FUVA and FUVB
-
-    Parameters
-    ----------
-    fldpth : str
-       path to the files
-
-    Returns
-    -------
-    fnamecorrs3000, fnamecorrs3360, fnamecorrsfuva, fnamecorrsfuvb : list of str
-      list of lists of corrtag files for the 4 cases
-
-    """
-
-    fnamecorrs = glob.glob(fldpth + '*corrtag*.fits')
-    fnamecorrs3000 = []
-    fnamecorrs3360 = []
-    for fnamecorr in fnamecorrs:
-        hdu = fits.open(fnamecorr)
-        centwave = hdu[0].header['CENTRWV']
-        hdu.close()
-        if centwave == 3000:
-            fnamecorrs3000.append(fnamecorr)
-        if centwave == 3360:
-            fnamecorrs3360.append(fnamecorr)
-    fnamecorrsfuva = glob.glob(fldpth + '*corrtag_a.fits')
-    fnamecorrsfuvb = glob.glob(fldpth + '*corrtag_b.fits')
-
-    if verbose:
-        print('Numbers of corrtag files found: ', len(fnamecorrs3000), len(fnamecorrs3360),
-              len(fnamecorrsfuva), len(fnamecorrsfuvb))
-    return fnamecorrs3000, fnamecorrs3360, fnamecorrsfuva, fnamecorrsfuvb
-
-
-
 def printallspoff(pths):
     """ Print SP_OFF values for all CORRTAG files (should be same for RAWTAG files)
 
