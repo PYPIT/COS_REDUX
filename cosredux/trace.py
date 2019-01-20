@@ -509,11 +509,15 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
         xfull1 = xfull[k]
         # fit
         if hd['DETECTOR'] == 'NUV':
-            x1, x0 = pyutils.robust_polyfit(xfull1, yfull1, 1)   #np.polyfit(xfull1, yfull1, 1)
+            # x1, x0 = pyutils.robust_polyfit(xfull1, yfull1, 1)[1]   #np.polyfit(xfull1, yfull1, 1)
+            x0, x1 = pyutils.robust_polyfit(xfull1, yfull1, 1)[1]
             newslopes1.append(x1)
             # assuming that central point in the trace did not change, i.e.:
             #     newslopes1 * (np.max(xfull)+np.min(xfull))*0.5 + newypeaks1 = const
             newypeaks1.append( (slopes[i] - x1) * (np.max(xfull)+np.min(xfull))*0.5 + ypeaks[i] )
+
+            #pdb.set_trace()
+
         else:
             newypeaks1.append(ypeaks[i])
             newslopes1.append(slopes[i])
@@ -734,7 +738,8 @@ def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, d
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'
         apertures = ['PSA']
-    raise IOError("Detector not well defined in ", corrtag[0])
+    else:
+        raise IOError("Detector not well defined in ", corrtag[0])
 
     # read ypeaks and slopes from a copy of the LP2_1dx_file
     hdu = fits.open(LP2_1dx_file)
