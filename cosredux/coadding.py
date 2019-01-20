@@ -20,7 +20,7 @@ from linetools.spectra import utils as ltsu
 from xastropy.xutils import xdebug as xdb
 
 
-def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0):
+def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0, figsize=(6, 5)):
     """ Plot flux vs wavelength for default and customized data reduction
 
     Parameters
@@ -51,7 +51,7 @@ def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0):
     flx1 = tbl['FLUX'][nseg]
     err1 = tbl['ERROR'][nseg]
 
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=figsize)
     plt.plot(wave1, flx1, color='blue')
     plt.plot(wave1, err1, '--', color='blue', label='previous')
 
@@ -185,8 +185,8 @@ def snf1(wave,flux,error):
     return sn
 
 
-def snf2(wave,flux,error):
-    """ Calculate S/N per R = 19000 (for FUV)
+def snf2(wave,flux,error, R = 19000.):
+    """ Calculate S/N per resolution R (for FUV)
 
     Parameters
     ----------
@@ -210,7 +210,7 @@ def snf2(wave,flux,error):
         else:
             s = 0
             n = 0
-            dlam = wave[i]/19000. # R = 19000.
+            dlam = wave[i]/R
             lam1 = wave[i] - dlam/2
             lam2 = wave[i] + dlam/2
             pix1 = np.argmin(abs(wave - lam1))
