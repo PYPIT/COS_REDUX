@@ -384,7 +384,7 @@ def traceshist(file_tr,traces_n,plottype='all',ymin=300,ymax=700, offs1ob = 0., 
 
 
 
-def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=None, height = None,pk_window=5):
+def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=None, height = None,pk_window=5,apertures=None):
     """ Find new traces (bspecs and slopes; YFULL = bspec + slope * XFULL)
         XFULL and YFULL are combined from all fnamecorrs.
         First, we fit a line YFULL = bspec + slope * XFULL, and find new slopes. For FUV we ignore this step,
@@ -407,6 +407,8 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
       maximum XFULL that is taken into account when finding traces
     height : float
       height (YFULL range) used when finding traces
+    apertures : list of str
+      apertures
 
     Returns
     -------
@@ -431,11 +433,13 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
     if hd['DETECTOR'] == 'NUV':
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
-        apertures = ['PSA', 'WCA']
+        if apertures is None:
+            apertures = ['PSA', 'WCA']
     elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'
-        apertures = ['PSA']
+        if apertures is None:
+            apertures = ['PSA']
     else:
         raise IOError("Detector not well defined in ",fnamecorrs[0])
 
@@ -545,7 +549,7 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
 
 
 def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspecs=None, new_loout=None, new_upout=None,
-                   verbose=True,overwrite=True):
+                   verbose=True,overwrite=True,apertures=None):
     """ Modify XTRACTAB traces.
 
     Parameters
@@ -562,6 +566,8 @@ def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspec
       new bspecs
     overwrite : bool
       True - save changes, False - only print what would change in the XTRACTAB file
+    apertures : list of str
+      apertures for which traces will be modified
 
     Returns
     -------
@@ -579,11 +585,13 @@ def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspec
     if hd['DETECTOR'] == 'NUV':
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:]
-        apertures = ['PSA', 'WCA']
+        if apertures is None:
+            apertures = ['PSA', 'WCA']
     elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:]
-        apertures = ['PSA']
+        if apertures is None:
+            apertures = ['PSA']
     else:
         raise IOError("Detector not well defined in ", fnamecorrs1[0])
     if verbose:
@@ -685,7 +693,8 @@ def modifyspoff(fldpth, seg, new_bspec, previous_bspec, verbose=True, overwrite=
 
 
 
-def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, dylim=None, showorigtraces=True):
+def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, dylim=None, showorigtraces=True,
+               apertures=None):
     """ Plot YFULL vs XFULL, and show original and new traces.
      The traces are shown for object and lamp, and for all segments. For each case, a separate figure is shown.
 
@@ -704,6 +713,8 @@ def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, d
       YFULL range to show around traces. ylim = (bspec - dylim, bspec + dylim)
     showorigtraces : bool
       If true, show original traces
+    apertures : list of str
+      apertures
 
     Returns
     -------
@@ -730,11 +741,13 @@ def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, d
     if hd['DETECTOR'] == 'NUV':
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
-        apertures = ['PSA', 'WCA']
+        if apertures is None:
+            apertures = ['PSA', 'WCA']
     elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'
-        apertures = ['PSA']
+        if apertures is None:
+            apertures = ['PSA']
     else:
         raise IOError("Detector not well defined in ", corrtag[0])
 
@@ -791,7 +804,7 @@ def plottraces(fldpth, corrtag, newypeaks=None, newslopes=None, verbose=False, d
 
 
 def plothist(fldpth, corrtag, newypeaks=None, slopes=None, newheights=None, iheight=57,
-             verbose=False, nhres=10, fitgauss=False, percs=None, showorigperc=False):
+             verbose=False, nhres=10, fitgauss=False, percs=None, showorigperc=False,apertures=None):
     """ Displays histogram of YFULL corrected for the slope, and shows original and new traces.
     For each case (object or lamp; different segments), a separate figure is shown.
 
@@ -819,6 +832,8 @@ def plothist(fldpth, corrtag, newypeaks=None, slopes=None, newheights=None, ihei
       It is needed first to define iheight to be equal to the height from the twozxtab
     showorigperc : bool
       Show original outer region boundaries (from twozxtab file)
+    apertures : list of str
+      apertures
 
     Returns
     -------
@@ -837,11 +852,13 @@ def plothist(fldpth, corrtag, newypeaks=None, slopes=None, newheights=None, ihei
     if hd['DETECTOR'] == 'NUV':
         segments = ['NUVA', 'NUVB', 'NUVC']
         LP2_1dx_file = fldpth + hd['XTRACTAB'][5:-5] + '_copy1.fits'
-        apertures = ['PSA', 'WCA']
+        if apertures is None:
+            apertures = ['PSA', 'WCA']
     elif hd['DETECTOR'] == 'FUV':
         segments = [hd['SEGMENT']]
         LP2_1dx_file = fldpth + hd['TWOZXTAB'][5:-5] + '_copy1.fits'  # '_copy1.fits'
-        apertures = ['PSA']
+        if apertures is None:
+            apertures = ['PSA']
     else:
         raise IOError("Detector not well defined in ", corrtag[0])
 
