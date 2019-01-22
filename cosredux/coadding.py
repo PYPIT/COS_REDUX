@@ -91,13 +91,15 @@ def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0, fi
 
 
 
-def findsp(fldpth, verbose=True):
+def findsp(fldpth, verbose=True, emax=None):
     """ Find all NUV and FUV spectra
 
     Parameters
     ----------
     fldpth : str
        path to the files
+    emax : int
+      read extensions 0, 1, ..., emax-1 of sum.fits files (corresponding to segments A,B,C)
 
     Returns
     -------
@@ -122,7 +124,11 @@ def findsp(fldpth, verbose=True):
 
         # read data
         tbl = Table.read(spf)
-        for j in range(len(tbl)):
+        jmax = len(tbl)
+        if (emax is not None):
+            if (emax < len(tbl)):
+                jmax = emax
+        for j in range(jmax):
             wave = tbl['WAVELENGTH'][j]
             flx = tbl['FLUX'][j]
             err = tbl['ERROR'][j]
@@ -134,7 +140,6 @@ def findsp(fldpth, verbose=True):
             elif det == 'FUV':
                 fuvsp.append(xsp)
             else:
-                #print('Not defined opt_elem?')
                 raise IOError("Detector not well defined in ", spf)
 
     if verbose:
