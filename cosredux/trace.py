@@ -549,7 +549,7 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
 
 
 def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspecs=None, new_loout=None, new_upout=None,
-                   verbose=True,overwrite=True,apertures=None):
+                   new_loinn=None, new_upinn=None, verbose=True,overwrite=True,apertures=None):
     """ Modify XTRACTAB traces.
 
     Parameters
@@ -568,6 +568,14 @@ def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspec
       True - save changes, False - only print what would change in the XTRACTAB file
     apertures : list of str
       apertures for which traces will be modified
+    new_loout : float
+      new LOWER_OUTER in TWOZXTAB file
+    new_upout : float
+      new UPPER_OUTER in TWOZXTAB file
+    new_loinn : float
+      new LOWER_INNER in TWOZXTAB file
+    new_upinn : float
+      new UPPER_INNER in TWOZXTAB file
 
     Returns
     -------
@@ -641,6 +649,14 @@ def modifyxtractab(fldpth, fnamecorrs1, new_ebh=None, new_slopes=None, new_bspec
                     if verbose:
                         print('up_out', lp2[irow]['UPPER_OUTER'], new_upout)
                     lp2[irow]['UPPER_OUTER'] = new_upout
+                if new_loinn is not None:
+                    if verbose:
+                        print('lo_inn', lp2[irow]['LOWER_INNER'], new_loinn)
+                    lp2[irow]['LOWER_INNER'] = new_loinn
+                if new_upinn is not None:
+                    if verbose:
+                        print('up_inn', lp2[irow]['UPPER_INNER'], new_upinn)
+                    lp2[irow]['UPPER_INNER'] = new_upinn
 
                 i = i + 1
 
