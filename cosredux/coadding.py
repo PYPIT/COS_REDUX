@@ -350,6 +350,7 @@ def coaddsp(spects,plotsp=False,outf=None,overwrite=False):
 
     # write to file
     if outf is not None:
+        #pdb.set_trace()
         sptot.write(outf,clobber=overwrite)
 
     return sptot
@@ -387,7 +388,7 @@ def medsn(ispec, det):
 
 
 
-def smoothsp(spects, det, snmin):
+def smoothsp(spects, det, snmin, outf=None):
     """ Smooth noisy spectra, and return smoothed spectra with S/N per pixel higher than snmin
 
     Parameters
@@ -440,5 +441,11 @@ def smoothsp(spects, det, snmin):
                     outpspec.append(ispecsm)
                     print('Smoothing with {:f} pixels'.format(ism))
                     break
+            if imedsn <= snmin:
+                outpspec.append(ispecsm)
+                print('Smoothing with {:f} pixels. S/N still low.'.format(ism))
+
+    if outf is not None:
+        outpspec[0].write(outf)
 
     return outpspec
