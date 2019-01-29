@@ -4,13 +4,11 @@ from __future__ import (print_function, absolute_import, division, unicode_liter
 
 import numpy as np
 import os
-import glob
 import pdb
 
 from matplotlib import pyplot as plt
 
 from astropy.table import Table
-from astropy.io import fits
 
 from xastropy.xutils import xdebug as xdb
 
@@ -246,6 +244,11 @@ def combinespectfiles(spfile_a, spfile_b, file_ab):
     spliced_sp=spltu.splice_two(file_b, file_a, chk_units=False)
     spliced_sp.write(file_ab)
     #print("Wrote {:s}".format(file_ab))
+
+
+
+
+
 
 
  

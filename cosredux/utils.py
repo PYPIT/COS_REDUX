@@ -5,6 +5,7 @@ from __future__ import (print_function, absolute_import, division, unicode_liter
 import numpy as np
 import os
 import glob
+import shutil
 import pdb
 
 from astropy.table import Table
@@ -409,4 +410,135 @@ def change_dq_wgt(x1d_folder, clobber=True):
 
 
 
+def copy_files(pths,ext):
+    """ Make a copy of files in paths pths that are ending with ext+'.fits'
+        Copies are in the same paths, and end with _copy1.fits
 
+    Parameters
+    ----------
+    pths : list of str
+       list of paths to the files
+    ext : str
+      files end with this string, e.g. '_1dx'
+
+    Returns
+    -------
+
+    """
+    for pth in pths:
+        fls = glob.glob(pth+'*'+ext+'.fits')
+        for fl in fls:
+            flcp = fl[:-5]+'_copy1.fits'
+            if len(glob.glob(flcp)) == 0:
+                print('Copying file {:s}'.format(fl))
+                shutil.copyfile(fl,flcp)
+            else:
+                print('File {:s} already exists'.format(flcp))
+        print(' ')
+
+
+
+def load_fnames(pth, lenname=7):
+    """ Load paths to data and folder names
+
+    Parameters
+    ----------
+    pth : str
+       path to data folders, including * (for glob)
+    lenname : str
+      length of names of folders with data
+      (should be the same for all data)
+
+    Returns
+    -------
+    ff1 : list of str
+      paths to data
+    fldnames : list of str
+      folder names
+    """
+
+    ff1 = []
+    fldnames = []
+    ff = np.sort(glob.glob(pth))
+    for i in range(len(ff)):
+        if len(ff[i]) == (len(pth)+lenname-2):
+            ff1.append(ff[i])
+            fldnames.append(ff[i][len(pth)-3:-1])
+    return ff1, fldnames
+
+
+def printallspoff(pths):
+    """ Print SP_OFF values for all CORRTAG files (should be same for RAWTAG files)
+
+    Parameters
+    ----------
+    pths : list of str
+       list of paths to the files
+
+    Returns
+    -------
+
+    """
+
+    for ifldpth in pths:
+        raws = glob.glob(ifldpth + '*corrtag_*.fits')
+        for raw in raws:
+            with fits.open(raw) as f:
+                print(raw, f[1].header['SP_OFF_A'], f[1].header['SP_OFF_B'])
+
+
+
+def summfile(ifldpth,idx):
+    """ Find _x1dsum file ending with idx + '_x1dsum.fits'
+
+    Parameters
+    ----------
+    ifldpth : str
+       path to the files
+    idx : str
+      the file ends with idx + '_x1dsum.fits'
+      e.g. idx = '10'
+
+    Returns
+    -------
+      fname : str
+        sum file name
+
+    """
+
+    fname = glob.glob(ifldpth+'*'+idx+'_x1dsum.fits')
+    if len(fname) != 1:
+        print('multiple or zero '+idx+'_x1dsum files: ', len(fname))
+        print(ifldpth)
+    else:
+        fname = fname[0]
+    return fname
+
+
+def getfiles(pths,endstr,verbose=True):
+    """ Get all files in paths pths, ending with endstr.
+
+    Parameters
+    ----------
+    pths: list of strings
+      Folders where are the data
+    endstr
+
+    Returns
+    --------
+    ff: array of strings
+       File names
+
+    """
+
+    ff = []
+    for ipth in pths:
+        ff22 = glob.glob(ipth+'/*'+endstr)
+        for iff22 in ff22:
+            ff.append(iff22)
+    ff = np.asarray(ff)
+    ff = np.sort(ff)
+    if verbose:
+        print('Number of files:',len(ff))
+
+    return ff
