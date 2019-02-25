@@ -449,3 +449,58 @@ def smoothsp(spects, det, snmin, outf=None):
         outpspec[0].write(outf)
 
     return outpspec
+
+
+
+def binsp(spf,kbin = 3, outf=None):
+    """ Bin spectrum
+
+        Parameters
+        ----------
+        spf : file with a XSpectrum1D object
+          input spectrum
+        kbin : int
+          number of pixels to bin
+        outf : str
+          output file in which the binned spectrum will be written
+
+        Returns
+        -------
+        xsp2 : XSpectrum1D object
+          binned spectrum
+
+        """
+
+    # read spectrum from the file
+    xsp = xspec.XSpectrum1D.from_file(spf)
+    n = len(xsp.wavelength)
+    wave = xsp.wavelength
+    flx = xsp.flux
+    sig = xsp.sig
+
+    # lists with binned wavelength, flux, error in flux
+    waveb = []
+    flxb = []
+    sigb = []
+
+    # bin
+    for j in range(int(n / kbin)):
+        i = kbin * j
+        waveb.append(np.mean(wave[i:i + kbin].value)) # [angstrom]
+        flxb.append(np.mean(flx[i:i + kbin].value))  # [erg /s /cm**2 /angstrom]
+        isigb = np.sum((sig[i:i + kbin].value)**2)
+        isigb = (isigb**0.5)/kbin
+        sigb.append(isigb)
+
+    # output spectrum
+    waveb = np.asarray(waveb)
+    flxb = np.asarray(flxb)
+    sigb = np.asarray(sigb)
+    xsp2 = xspec.XSpectrum1D.from_tuple((waveb, flxb, sigb))
+
+    # write
+    if outf is not None:
+        xsp2.write(outf)
+
+    return xsp2
+
