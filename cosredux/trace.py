@@ -384,7 +384,8 @@ def traceshist(file_tr,traces_n,plottype='all',ymin=300,ymax=700, offs1ob = 0., 
 
 
 
-def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=None, height = None,pk_window=5,apertures=None):
+def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=None, height = None,pk_window=5,apertures=None,
+              ypeaks00=None):
     """ Find new traces (bspecs and slopes; YFULL = bspec + slope * XFULL)
         XFULL and YFULL are combined from all fnamecorrs.
         First, we fit a line YFULL = bspec + slope * XFULL, and find new slopes. For FUV we ignore this step,
@@ -475,6 +476,8 @@ def findpeaks(fldpth, fnamecorrs, verbose=True, printorig=True, xmin=0, xmax=Non
                 heights.append(height)
             else:
                 heights.append(lp2[irow]['HEIGHT'])
+    if ypeaks00 is not None:
+        ypeaks = ypeaks00
     if printorig:
         print('Original values:')
         print('slopes: ', slopes)

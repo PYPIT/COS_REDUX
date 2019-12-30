@@ -11,11 +11,14 @@ from matplotlib import pyplot as plt
 
 from astropy.table import Table
 from astropy.io import fits
-from pypeit.core import coadd as coadd
+from pypeit.core import coadd1d as coadd1d
 
 from linetools.spectra import utils as spltu
 import linetools.spectra.xspectrum1d as xspec
 from linetools.spectra import utils as ltsu
+
+from importlib import reload
+#reload(coadd)
 
 from xastropy.xutils import xdebug as xdb
 
@@ -286,7 +289,7 @@ def findspsn(spectra,det,minsn=1,verbose=True):
 
 
 
-
+'''
 
 def coaddsp(spects,plotsp=False,outf=None,overwrite=False):
     """ Coadd spectra
@@ -354,6 +357,9 @@ def coaddsp(spects,plotsp=False,outf=None,overwrite=False):
         sptot.write(outf,clobber=overwrite)
 
     return sptot
+
+'''
+
 
 
 def medsn(ispec, det):
@@ -503,4 +509,63 @@ def binsp(spf,kbin = 3, outf=None):
         xsp2.write(outf)
 
     return xsp2
+
+
+def coaddspectra(splist,plotsp=True,outf=None,sn_smooth_npix=10):
+    """  Coadd spectra
+
+    Parameters
+    ----------
+    splist : list of XSpectrum1D objects
+        List of spectra to coadd
+    plotsp : bool
+        If True, plot the coadded spectrum
+    outf : str
+        Output file
+    sn_smooth_npix : float
+        Parameter in coadd1d.combspec function that defines
+        number of pixels to median filter by when computing S/N used to decide how to scale and weight spectra
+
+    Returns
+    -------
+    sp : XSpectrum1D
+        A spectrum that represents coadded spectra from the splist list
+
+    """
+    waves = []
+    fluxes = []
+    ivars = []
+    masks = []
+
+    for isp in splist:
+        waves.append(isp.wavelength)
+        fluxes.append(isp.flux)
+        ivars.append(1. / (isp.sig) ** 2.)
+        imask = np.repeat(True, len(isp.flux))
+        j = np.where((isp.flux == 0) & (isp.sig == 0))[0]
+        imask[j] = False
+        masks.append(imask)
+
+    waves = np.ndarray.transpose(np.asarray(waves))
+    fluxes = np.ndarray.transpose(np.asarray(fluxes))
+    ivars = np.ndarray.transpose(np.asarray(ivars))
+    masks = np.ndarray.transpose(np.asarray(masks))
+
+    wave_stack, flux_stack, ivar_stack, mask_stack = coadd1d.combspec(
+        waves, fluxes, ivars, masks, sn_smooth_npix, show=plotsp)
+
+    ii = np.where(wave_stack > 0)[0]
+    coadded_waves = wave_stack[ii]
+    coadded_fluxes = flux_stack[ii]
+    coadded_sigs = 1 / (np.sqrt(ivar_stack[ii]))
+
+    # write and return the spectrum
+    sp = xspec.XSpectrum1D(coadded_waves, coadded_fluxes, coadded_sigs)
+
+    if outf is not None:
+        sp.write_to_fits(outf)
+
+    return sp
+
+
 
