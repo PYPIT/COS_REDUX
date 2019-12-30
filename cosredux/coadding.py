@@ -11,16 +11,9 @@ from matplotlib import pyplot as plt
 
 from astropy.table import Table
 from astropy.io import fits
-from pypeit.core import coadd1d as coadd1d
-
-from linetools.spectra import utils as spltu
 import linetools.spectra.xspectrum1d as xspec
-from linetools.spectra import utils as ltsu
 
-from importlib import reload
-#reload(coadd)
-
-from xastropy.xutils import xdebug as xdb
+from pypeit.core import coadd1d as coadd1d
 
 
 def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0, figsize=(6, 5)):
@@ -281,84 +274,6 @@ def findspsn(spectra,det,minsn=1,verbose=True):
 
     return spectrasn
 
-
-
-
-
-
-
-
-
-'''
-
-def coaddsp(spects,plotsp=False,outf=None,overwrite=False):
-    """ Coadd spectra
-
-    Parameters
-    ----------
-    spects : list of XSpectrum1D objects
-       list of spectra
-    plotsp : bool
-      if true, plot the coadded spectrum
-    outf : str
-      output file
-
-    Returns
-    -------
-    sptot : XSpectrum1D
-      coadded spectrum
-
-    """
-
-    # sort spectra by minimum wavelength
-    wvmins = []
-    for i in range(len(spects)):
-        wvmins.append(spects[i].wvmin.value)
-    ii = np.argsort(wvmins)
-    spects = spects[ii]
-
-    # Create a list of spectra (outpspects) in which spectra do not overlap in wavelenght with each other
-    # Coadd spectra whose wavelengths overlap (spects1).
-    outpspects = []
-    spects1 = [spects[0]] # a temporary list in which every next spectrum overlaps in wavelenght with the previous one
-    wvmax1 = spects[0].wvmax.value # max wavelenght in the previous spectrum
-    for sp in spects[1:]:
-        if sp.wvmin.value < wvmax1:
-            spects1.append(sp)
-        else:
-            mspec = ltsu.collate(spects1)
-            coaddsp = coadd.coadd_spectra(mspec)
-            outpspects.append(coaddsp)
-            #
-            spects1 = [sp]
-        wvmax1 = sp.wvmax.value
-
-    mspec = ltsu.collate(spects1)
-    coaddsp = coadd.coadd_spectra(mspec)
-    outpspects.append(coaddsp)
-
-    # coadd outpspects spectra (which do not overlap in wavelenght) by using spltu.splice_two
-    sptot = outpspects[0]
-    for outsp in outpspects[1:]:
-        sptot = spltu.splice_two(sptot, outsp, chk_units=False)
-
-    # plot sptot
-    if plotsp:
-        plt.figure(figsize=(17,4))
-        plt.plot(sptot.wavelength.value, sptot.flux.value, color='black')
-        plt.plot(sptot.wavelength.value, sptot.sig.value, color='blue')
-        plt.plot([sptot.wvmin.value, sptot.wvmax.value], [0, 0], '--',color='lightgray')
-        plt.xlabel('Wavelength')
-        plt.ylabel('Flux')
-
-    # write to file
-    if outf is not None:
-        #pdb.set_trace()
-        sptot.write(outf,clobber=overwrite)
-
-    return sptot
-
-'''
 
 
 
