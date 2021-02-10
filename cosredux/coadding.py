@@ -11,13 +11,9 @@ from matplotlib import pyplot as plt
 
 from astropy.table import Table
 from astropy.io import fits
-from pypeit.core import coadd as coadd
-
-from linetools.spectra import utils as spltu
 import linetools.spectra.xspectrum1d as xspec
-from linetools.spectra import utils as ltsu
 
-from xastropy.xutils import xdebug as xdb
+from pypeit.core import coadd1d as coadd1d
 
 
 def flxwave(fname1, fname2s, xlim=(1900, 1950), ylim=None, norm=True, nseg=0, figsize=(6, 5)):
@@ -281,81 +277,6 @@ def findspsn(spectra,det,minsn=1,verbose=True):
 
 
 
-
-
-
-
-
-
-
-def coaddsp(spects,plotsp=False,outf=None,overwrite=False):
-    """ Coadd spectra
-
-    Parameters
-    ----------
-    spects : list of XSpectrum1D objects
-       list of spectra
-    plotsp : bool
-      if true, plot the coadded spectrum
-    outf : str
-      output file
-
-    Returns
-    -------
-    sptot : XSpectrum1D
-      coadded spectrum
-
-    """
-
-    # sort spectra by minimum wavelength
-    wvmins = []
-    for i in range(len(spects)):
-        wvmins.append(spects[i].wvmin.value)
-    ii = np.argsort(wvmins)
-    spects = spects[ii]
-
-    # Create a list of spectra (outpspects) in which spectra do not overlap in wavelenght with each other
-    # Coadd spectra whose wavelengths overlap (spects1).
-    outpspects = []
-    spects1 = [spects[0]] # a temporary list in which every next spectrum overlaps in wavelenght with the previous one
-    wvmax1 = spects[0].wvmax.value # max wavelenght in the previous spectrum
-    for sp in spects[1:]:
-        if sp.wvmin.value < wvmax1:
-            spects1.append(sp)
-        else:
-            mspec = ltsu.collate(spects1)
-            coaddsp = coadd.coadd_spectra(mspec)
-            outpspects.append(coaddsp)
-            #
-            spects1 = [sp]
-        wvmax1 = sp.wvmax.value
-
-    mspec = ltsu.collate(spects1)
-    coaddsp = coadd.coadd_spectra(mspec)
-    outpspects.append(coaddsp)
-
-    # coadd outpspects spectra (which do not overlap in wavelenght) by using spltu.splice_two
-    sptot = outpspects[0]
-    for outsp in outpspects[1:]:
-        sptot = spltu.splice_two(sptot, outsp, chk_units=False)
-
-    # plot sptot
-    if plotsp:
-        plt.figure(figsize=(17,4))
-        plt.plot(sptot.wavelength.value, sptot.flux.value, color='black')
-        plt.plot(sptot.wavelength.value, sptot.sig.value, color='blue')
-        plt.plot([sptot.wvmin.value, sptot.wvmax.value], [0, 0], '--',color='lightgray')
-        plt.xlabel('Wavelength')
-        plt.ylabel('Flux')
-
-    # write to file
-    if outf is not None:
-        #pdb.set_trace()
-        sptot.write(outf,clobber=overwrite)
-
-    return sptot
-
-
 def medsn(ispec, det):
     """ Find S/N per resolution element for a given spectrum
 
@@ -449,3 +370,117 @@ def smoothsp(spects, det, snmin, outf=None):
         outpspec[0].write(outf)
 
     return outpspec
+
+
+
+def binsp(spf,kbin = 3, outf=None):
+    """ Bin spectrum
+
+        Parameters
+        ----------
+        spf : file with a XSpectrum1D object
+          input spectrum
+        kbin : int
+          number of pixels to bin
+        outf : str
+          output file in which the binned spectrum will be written
+
+        Returns
+        -------
+        xsp2 : XSpectrum1D object
+          binned spectrum
+
+        """
+
+    # read spectrum from the file
+    xsp = xspec.XSpectrum1D.from_file(spf)
+    n = len(xsp.wavelength)
+    wave = xsp.wavelength
+    flx = xsp.flux
+    sig = xsp.sig
+
+    # lists with binned wavelength, flux, error in flux
+    waveb = []
+    flxb = []
+    sigb = []
+
+    # bin
+    for j in range(int(n / kbin)):
+        i = kbin * j
+        waveb.append(np.mean(wave[i:i + kbin].value)) # [angstrom]
+        flxb.append(np.mean(flx[i:i + kbin].value))  # [erg /s /cm**2 /angstrom]
+        isigb = np.sum((sig[i:i + kbin].value)**2)
+        isigb = (isigb**0.5)/kbin
+        sigb.append(isigb)
+
+    # output spectrum
+    waveb = np.asarray(waveb)
+    flxb = np.asarray(flxb)
+    sigb = np.asarray(sigb)
+    xsp2 = xspec.XSpectrum1D.from_tuple((waveb, flxb, sigb))
+
+    # write
+    if outf is not None:
+        xsp2.write(outf)
+
+    return xsp2
+
+
+def coaddspectra(splist,plotsp=True,outf=None,sn_smooth_npix=10):
+    """  Coadd spectra
+
+    Parameters
+    ----------
+    splist : list of XSpectrum1D objects
+        List of spectra to coadd
+    plotsp : bool
+        If True, plot the coadded spectrum
+    outf : str
+        Output file
+    sn_smooth_npix : float
+        Parameter in coadd1d.combspec function that defines
+        number of pixels to median filter by when computing S/N used to decide how to scale and weight spectra
+
+    Returns
+    -------
+    sp : XSpectrum1D
+        A spectrum that represents coadded spectra from the splist list
+
+    """
+    waves = []
+    fluxes = []
+    ivars = []
+    masks = []
+
+    for isp in splist:
+        waves.append(isp.wavelength)
+        fluxes.append(isp.flux)
+        ivars.append(1. / (isp.sig) ** 2.)
+        imask = np.repeat(True, len(isp.flux))
+        j = np.where((isp.flux == 0) & (isp.sig == 0))[0]
+        imask[j] = False
+        masks.append(imask)
+
+    waves = np.ndarray.transpose(np.asarray(waves))
+    fluxes = np.ndarray.transpose(np.asarray(fluxes))
+    ivars = np.ndarray.transpose(np.asarray(ivars))
+    masks = np.ndarray.transpose(np.asarray(masks))
+
+    wave_stack, flux_stack, ivar_stack, mask_stack = coadd1d.combspec(
+        waves, fluxes, ivars, masks, sn_smooth_npix, show=plotsp)
+
+    ii = np.where(wave_stack > 0)[0]
+    coadded_waves = wave_stack[ii]
+    coadded_fluxes = flux_stack[ii]
+    coadded_sigs = 1 / (np.sqrt(ivar_stack[ii]))
+
+    # write and return the spectrum
+    sp = xspec.XSpectrum1D(coadded_waves, coadded_fluxes, coadded_sigs)
+
+    if outf is not None:
+        sp.write_to_fits(outf)
+
+    return sp
+
+
+
