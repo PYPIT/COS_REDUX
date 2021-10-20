@@ -115,14 +115,14 @@ Follow the steps below for each segment (a, b) separately.
 3) Customize and run CALCOS (1st Pass)
 ======================================
 
-(a) Original Notes
-------------------
+(a) Original Notes (with small modification)
+--------------------------------------------
 
 - **cd folder_with_raw_data**
 
 - **For all FUV data set the following CALCOS calibration switches within pyraf:**
 
-  thedit *rawtag*.fits[0] FLATCORR 'OMIT' [flatfielding of Poisson data creates fractional counts, which are hard to interpret, COS flatfielding is approximate anyhow]
+  thedit *rawtag*.fits[0] FLATCORR 'OMIT' [flatfielding of Poisson data creates fractional counts, which are hard to interpret; also, COS flatfielding is approximate]
 
   thedit *rawtag*.fits[0] PHACORR 'OMIT'  [initial setting, to be tuned later]
 
@@ -132,10 +132,10 @@ Follow the steps below for each segment (a, b) separately.
 
 - **Set your calibration files wisely:**
 
-  thedit *rawtag*.fits[0] SPOTTAB 'N/A'   [This calibration step only works on select datasets where hotspots have been identified. How and by whom? Better get rid of this nonsense.]
+  thedit *rawtag*.fits[0] SPOTTAB 'N/A'   [This calibration step only works on select datasets where hotspots have been identified. We will not use it.]
 
   thedit *rawtag*.fits[0] GSAGTAB 'lref$x6l1439el_gsag.fits'  [This will flag all gain sag holes as of 2013Jun20, so mainly geocoronal gain sag holes at the overused LP1.
-                                                               Keeps the LP1 and LP2 traces usable that partly overlap with the dark calibration regions. All this is safe and tested!
+                                                               Keeps the LP1 and LP2 traces usable that partly overlap with the dark calibration regions. All this is safe and tested.
                                                                Download this file from https://hst-crds.stsci.edu.]
 
   thedit *rawtag*.fits[0] XTRACTAB 'lref$x6q17586l_1dx.fits'  [This will work for LP2 data with CALCOS v2.21. In newer versions STScI renamed some columns, so they might not work with CALCOS v2.21.
